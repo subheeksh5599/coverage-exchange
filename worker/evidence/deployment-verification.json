@@ -1,0 +1,118 @@
+{
+  "generatedAt": "2026-09-10T09:59:28.461Z",
+  "chainId": 102031,
+  "rpc": "https://rpc.cc3-testnet.creditcoin.network",
+  "addresses": {
+    "demoToken": "0x7bde1e22355677cf4ac461fec92f534dda2117b7",
+    "attestcoinAdapter": "0x5800fe651f37fc22ba0ce5e5b407c0b88a59ca63",
+    "coverageEngine": "0xca5e3b0076673cd64a1655221305e66f2056d2bb",
+    "coverageMarket": "0xb4569dc8827a8e573f2bb34b7f68a7ecf078b0e1",
+    "challengeManager": "0x5218279fd26e9b544c27e21acb1bfc9e325a5937",
+    "lendingAdapter": "0xf6931e84078c7fffc4f24c18bb15850ce7a1d967",
+    "predicateProhibited": "0x52a200d46c73695c746c31d76f9150a22c20fca1",
+    "predicateAbove": "0xba7469150da333bb8d2848e1a86aa80c212011ef",
+    "predicateBelow": "0x6728d18271470ea888ae23df99fcf4a70f3a3b2b"
+  },
+  "chainKey": 1,
+  "frontier": {
+    "height": 11674170,
+    "hash": "0xe886c99355251b0e94a72498cdd4a2c8e9b8e27af987f7d08f8aa1d3d2f674b9"
+  },
+  "checks": [
+    {
+      "name": "demoToken.code",
+      "ok": true,
+      "detail": "0x7bde1e22355677cf4ac461fec92f534dda2117b7 (1781 bytes)"
+    },
+    {
+      "name": "attestcoinAdapter.code",
+      "ok": true,
+      "detail": "0x5800fe651f37fc22ba0ce5e5b407c0b88a59ca63 (2671 bytes)"
+    },
+    {
+      "name": "coverageEngine.code",
+      "ok": true,
+      "detail": "0xca5e3b0076673cd64a1655221305e66f2056d2bb (7700 bytes)"
+    },
+    {
+      "name": "coverageMarket.code",
+      "ok": true,
+      "detail": "0xb4569dc8827a8e573f2bb34b7f68a7ecf078b0e1 (3205 bytes)"
+    },
+    {
+      "name": "challengeManager.code",
+      "ok": true,
+      "detail": "0x5218279fd26e9b544c27e21acb1bfc9e325a5937 (5770 bytes)"
+    },
+    {
+      "name": "lendingAdapter.code",
+      "ok": true,
+      "detail": "0xf6931e84078c7fffc4f24c18bb15850ce7a1d967 (3355 bytes)"
+    },
+    {
+      "name": "predicateProhibited.code",
+      "ok": true,
+      "detail": "0x52a200d46c73695c746c31d76f9150a22c20fca1 (1151 bytes)"
+    },
+    {
+      "name": "predicateAbove.code",
+      "ok": true,
+      "detail": "0xba7469150da333bb8d2848e1a86aa80c212011ef (1284 bytes)"
+    },
+    {
+      "name": "predicateBelow.code",
+      "ok": true,
+      "detail": "0x6728d18271470ea888ae23df99fcf4a70f3a3b2b (1288 bytes)"
+    },
+    {
+      "name": "engine.market",
+      "ok": true,
+      "detail": "0xb4569Dc8827a8e573F2BB34B7f68A7ecf078b0E1"
+    },
+    {
+      "name": "engine.challengeManager",
+      "ok": true,
+      "detail": "0x5218279FD26e9b544C27E21Acb1BFc9E325A5937"
+    },
+    {
+      "name": "engine.lendingAdapter",
+      "ok": true,
+      "detail": "0xF6931E84078c7ffFc4F24C18bB15850cE7a1d967"
+    },
+    {
+      "name": "adapter.BLOCK_PROVER_ADDRESS",
+      "ok": true,
+      "detail": "0x0000000000000000000000000000000000000FD2"
+    },
+    {
+      "name": "adapter.CHAIN_INFO_ADDRESS",
+      "ok": true,
+      "detail": "0x0000000000000000000000000000000000000fD3"
+    },
+    {
+      "name": "engine.coverageRatioBps >= 10000",
+      "ok": true,
+      "detail": "10000bips"
+    },
+    {
+      "name": "engine.defaultGraceBlocks",
+      "ok": true,
+      "detail": "10000 source blocks"
+    },
+    {
+      "name": "adapter.tryFrontier (live precompile)",
+      "ok": true,
+      "detail": "height=11674170 hash=0xe886c99355251b0e94a72498cdd4a2c8e9b8e27af987f7d08f8aa1d3d2f674b9"
+    },
+    {
+      "name": "frontierReached(reported height)",
+      "ok": true,
+      "detail": "-> true"
+    },
+    {
+      "name": "frontierReached(height + 10M)",
+      "ok": true,
+      "detail": "-> false (must be false)"
+    }
+  ]
+}

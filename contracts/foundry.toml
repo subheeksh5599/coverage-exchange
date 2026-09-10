@@ -33,6 +33,7 @@ cc3_testnet = { key = "${CC3_EXPLORER_API_KEY}", chain = 102031 }
 [profile.live]
 src = "src"
 test = "test"
+script = "script"
 libs = ["lib", "dependencies"]
 solc_version = "0.8.30"
 optimizer = true

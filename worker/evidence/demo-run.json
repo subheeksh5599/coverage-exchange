@@ -1,0 +1,196 @@
+{
+  "generatedAt": "2026-09-10T10:23:47.555Z",
+  "dryRun": false,
+  "steps": [
+    {
+      "step": "faucet ALICE",
+      "tx": "0x155abdc97c153aa9e51afe0b91c992c14f3c043ba726ba99c10c542e716ea96c",
+      "extra": "block 5462989 gas 38206"
+    },
+    {
+      "step": "faucet BOB",
+      "tx": "0xa1dc1026cd22edf0bf731597d59925efcebc4d5bca8169a2b3b667793c909f27",
+      "extra": "block 5462990 gas 38206"
+    },
+    {
+      "step": "faucet LENDER",
+      "tx": "0xfb0818fce8da6db0509eb8c16f76ecc636dafa555b75c6c56cb116b5f9b43292",
+      "extra": "block 5462991 gas 38206"
+    },
+    {
+      "step": "BOB approves the engine",
+      "tx": "0x96099488cb2fc8d61478580cbb1ac9d43a69843ff8248c106f0d31171355875d",
+      "extra": "block 5462992 gas 37030"
+    },
+    {
+      "step": "BOB deposits bond capital",
+      "tx": "0xf22e94ab103c1f2592aaec814ea4aa57719165b4e59d788c176ef58233e68189",
+      "extra": "block 5462993 gas 155596"
+    },
+    {
+      "step": "ALICE approves the pool (for repayment)",
+      "tx": "0xd02c2cbd7f2441831d71b04bdefd17d8ac24de1bc36460b577a165c80fd27ec8",
+      "extra": "block 5462994 gas 37030"
+    },
+    {
+      "step": "LENDER approves the pool (for repayment)",
+      "tx": "0x2bd679f8b65f99651df718fadb4149fe22cafa1d6c2d159bedc093d3d1b4d943",
+      "extra": "block 5462995 gas 37030"
+    },
+    {
+      "step": "LENDER funds liquidity",
+      "tx": "0x21b7a644a2211c0a329880fa9b162cf077ef1e8dcf15addda646587706cf05d8",
+      "extra": "block 5462996 gas 96390"
+    },
+    {
+      "step": "ALICE approves the market",
+      "tx": "0xaadb9a38e53e6c92f55bc0324d646c48a2d1b0111b4604ffdd727b9c38a77d93",
+      "extra": "block 5462997 gas 37030"
+    },
+    {
+      "step": "ALICE buys coverage",
+      "tx": "0x1a9aece9e5b5cfea1ca86554ea6d02d73f427fdfce8ecee05b302dbb1a9ed0a5",
+      "extra": "block 5462998 gas 371652"
+    },
+    {
+      "step": "coverage created",
+      "tx": null,
+      "extra": "id=10 status=0 window=[11671130,11671230] bond=12000000000 predicateParams=0x000000000000000000000000fe3a58a4fbd2755630e341a28006989ad08cd01d"
+    },
+    {
+      "step": "isValid",
+      "tx": null,
+      "extra": "true (VALID)"
+    },
+    {
+      "step": "previewDraw",
+      "tx": null,
+      "extra": "true (VALID)"
+    },
+    {
+      "step": "ALICE draws against coverage",
+      "tx": "0x84c5783f762076fea37d6371c9ccd9ed7a926f7ad5124333392eed819dfe87be",
+      "extra": "block 5462999 gas 288092"
+    },
+    {
+      "step": "exposure recorded",
+      "tx": null,
+      "extra": "10000000000"
+    },
+    {
+      "step": "fetched real proof",
+      "tx": null,
+      "extra": "height 11671180, 7 siblings, 21 continuity roots"
+    },
+    {
+      "step": "previewChallenge (free, read-only)",
+      "tx": null,
+      "extra": "true — \"counterexample breaches the position\""
+    },
+    {
+      "step": "CAROL challenges with the counterexample",
+      "tx": "0x5930a7e3e29f6394839dd34c6688a501778ad2b928c6877b95a44ecdd326686f",
+      "extra": "block 5463000 gas 396004"
+    },
+    {
+      "step": "bond paid to the challenger",
+      "tx": null,
+      "extra": "+12000 cxTUSD"
+    },
+    {
+      "step": "coverage status",
+      "tx": null,
+      "extra": "status=1 (BREACHED) challengeKey=0x0bc8d420e25e36e1d8a04b652d56fcecd172285fd43e399c72252fb46e9df272"
+    },
+    {
+      "step": "isValid after breach",
+      "tx": null,
+      "extra": "false (STATUS_BREACHED)"
+    },
+    {
+      "step": "draw after breach -> reverted as designed",
+      "tx": null,
+      "extra": "CoverageNotValid(2=STATUS_BREACHED)"
+    },
+    {
+      "step": "second challenger with the same counterexample -> reverted as designed",
+      "tx": null,
+      "extra": "NotLive()"
+    },
+    {
+      "step": "ALICE buys a second position",
+      "tx": "0x72fca7de0c524f96a72184f521e56a5dc665ef795cd7c523502664525ecba2d6",
+      "extra": "block 5463001 gas 371652"
+    },
+    {
+      "step": "ALICE draws part of it",
+      "tx": "0xf7bd5dd96c0cf26473cdbb75ca22027b298fbbc6ce89285fb1aa590fb7748869",
+      "extra": "block 5463002 gas 288092"
+    },
+    {
+      "step": "ALICE repays, freeing capacity",
+      "tx": "0x4401c55ca230dbd3ce39ea65e280a32b33380f91b5d66aeef1bcefdc4c93ff1a",
+      "extra": "block 5463003 gas 211778"
+    },
+    {
+      "step": "window attested at the required depth",
+      "tx": null,
+      "extra": "true (frontier has passed endBlock + depth)"
+    },
+    {
+      "step": "anyone settles the clean position",
+      "tx": "0x508dc45c0a7b613813bec6f84aea4b4ca506f2b4a06fe0a7d3ebfeb78c5273b2",
+      "extra": "block 5463004 gas 181412"
+    },
+    {
+      "step": "bond released back to the underwriter",
+      "tx": null,
+      "extra": "free balance +12000 cxTUSD, locked bond 36000 -> 24000"
+    },
+    {
+      "step": "second position status",
+      "tx": null,
+      "extra": "status=3 (SETTLED)"
+    }
+  ],
+  "coverageId": "10",
+  "purchaseTx": "0x1a9aece9e5b5cfea1ca86554ea6d02d73f427fdfce8ecee05b302dbb1a9ed0a5",
+  "coverage": {
+    "borrower": "0xB886c3061444A295A21748Ed7aaF5C702df0410d",
+    "underwriter": "0x70AE71478b1d96e40dAfA5a495D1B96e339Bd5ec",
+    "window": [
+      11671130,
+      11671230
+    ],
+    "maxExposure": "10000000000",
+    "bond": "12000000000",
+    "premium": "56000000",
+    "status": 1,
+    "challengeKey": "0x0bc8d420e25e36e1d8a04b652d56fcecd172285fd43e399c72252fb46e9df272"
+  },
+  "evidence": {
+    "sourceTx": "0x19c528d3175bfc9d7cd0b1b7285fa07113054c5585eb8dead195b977edbc88a1",
+    "sourceBlock": 11671180,
+    "txIndex": 2,
+    "status": 1,
+    "contract": "0x1c7d4b196cb0c7b01d743fbc6116a902379c7238",
+    "eventSignature": "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef",
+    "eventName": "Transfer(address,address,uint256)",
+    "from": "0xFf304193b4694b3c374CdebcCec8A60Cb5A87107",
+    "to": "0xfe3A58A4fBd2755630E341A28006989aD08CD01d",
+    "value": "100000000",
+    "toAddressLabel": "candidate prohibited recipient",
+    "tokenDecimals": null,
+    "gasUsed": "100400",
+    "sender": "0xFf304193b4694b3c374CdebcCec8A60Cb5A87107"
+  },
+  "proof": {
+    "headerNumber": 11671180,
+    "txIndex": 2,
+    "merkleRoot": "0x856d478c06f17b76066b8dd93f59a000a151df655f220754874874eb1b76b5c3"
+  },
+  "settlement": {
+    "coverageId": "11",
+    "status": 3
+  }
+}

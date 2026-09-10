@@ -12,7 +12,8 @@
     "source": {
       "name": "Ethereum Sepolia",
       "chainKey": 1,
-      "rpc": "https://ethereum-sepolia-rpc.publicnode.com"
+      "rpc": "https://ethereum-sepolia-rpc.publicnode.com",
+      "frontierAtDemo": 11674180
     }
   },
   "attestcoin": {
@@ -23,26 +24,31 @@
     "ascContracts": "@gluwa/asc-contracts 0.2.1"
   },
   "contracts": {
-    "_status": "PENDING \u2014 not deployed. Addresses are deliberately null rather than omitted so that a reviewer can see the deployment has not happened.",
-    "demoToken": null,
-    "attestcoinAdapter": null,
-    "coverageEngine": null,
-    "coverageMarket": null,
-    "challengeManager": null,
-    "lendingAdapter": null,
-    "prohibitedRecipient": null,
-    "amountAboveLimit": null,
-    "amountBelowFloor": null
+    "_status": "DEPLOYED on Creditcoin CC3 testnet (chainId 102031) on 2026-09-10. Verified by worker/scripts/verify-deployment.mjs (19/19 checks).",
+    "_explorer": "https://creditcoin-testnet.blockscout.com/address/",
+    "demoToken": "0x7bde1e22355677cf4ac461fec92f534dda2117b7",
+    "attestcoinAdapter": "0x5800fe651f37fc22ba0ce5e5b407c0b88a59ca63",
+    "coverageEngine": "0xca5e3b0076673cd64a1655221305e66f2056d2bb",
+    "coverageMarket": "0xb4569dc8827a8e573f2bb34b7f68a7ecf078b0e1",
+    "challengeManager": "0x5218279fd26e9b544c27e21acb1bfc9e325a5937",
+    "lendingAdapter": "0xf6931e84078c7fffc4f24c18bb15850ce7a1d967",
+    "predicateProhibitedRecipient": "0x52a200d46c73695c746c31d76f9150a22c20fca1",
+    "predicateAmountAboveLimit": "0xba7469150da333bb8d2848e1a86aa80c212011ef",
+    "predicateAmountBelowFloor": "0x6728d18271470ea888ae23df99fcf4a70f3a3b2b"
   },
   "transactions": {
-    "_status": "PENDING \u2014 requires a deployment. The demo script names the exact transactions that will be listed here.",
-    "coverageCreation": null,
-    "purchase": null,
-    "draw": null,
-    "counterexample": null,
-    "bondSlash": null,
-    "failedChallenge": null,
-    "settlement": null
+    "_status": "REAL. Executed on CC3 testnet (chainId 102031) on 2026-09-10. Every hash resolves in the explorer; the full run log is worker/evidence/demo-run.json.",
+    "_explorer": "https://creditcoin-testnet.blockscout.com/tx/",
+    "underwriterDeposit": "0xf22e94ab103c1f2592aaec814ea4aa57719165b4e59d788c176ef58233e68189",
+    "liquidityDeposit": "0x21b7a644a2211c0a329880fa9b162cf077ef1e8dcf15addda646587706cf05d8",
+    "purchase": "0x1a9aece9e5b5cfea1ca86554ea6d02d73f427fdfce8ecee05b302dbb1a9ed0a5",
+    "draw": "0x84c5783f762076fea37d6371c9ccd9ed7a926f7ad5124333392eed819dfe87be",
+    "counterexample": "0x5930a7e3e29f6394839dd34c6688a501778ad2b928c6877b95a44ecdd326686f",
+    "secondPurchase": "0x72fca7de0c524f96a72184f521e56a5dc665ef795cd7c523502664525ecba2d6",
+    "repay": "0x4401c55ca230dbd3ce39ea65e280a32b33380f91b5d66aeef1bcefdc4c93ff1a",
+    "settlement": "0x508dc45c0a7b613813bec6f84aea4b4ca506f2b4a06fe0a7d3ebfeb78c5273b2",
+    "coverageIdBreached": "10",
+    "coverageIdSettled": "11"
   },
   "measured": {
     "contractTests": {
@@ -132,12 +138,37 @@
         }
       },
       "note": "All values produced by the committed test suite; no estimates."
+    },
+    "liveDemo": {
+      "tool": "node worker/scripts/demo.mjs",
+      "chainId": 102031,
+      "counterexampleSource": {
+        "chain": "Ethereum Sepolia (chainKey 1)",
+        "sourceTx": "0x19c528d3175bfc9d7cd0b1b7285fa07113054c5585eb8dead195b977edbc88a1",
+        "sourceBlock": 11671180,
+        "contract": "0x1c7d4b196cb0c7b01d743fbc6116a902379c7238",
+        "event": "Transfer(address,address,uint256)",
+        "prohibitedRecipient": "0xfe3A58A4fBd2755630E341A28006989aD08CD01d",
+        "note": "A real, unrelated Sepolia USDC transfer whose recipient was declared prohibited in the coverage terms. The proof is genuine; the invariant is one a lender could really write."
+      },
+      "outcome": {
+        "coverageValidBeforeChallenge": true,
+        "drawSucceeded": true,
+        "realProofVerifiedByPrecompile": true,
+        "challengeSucceeded": true,
+        "bondPaidToChallenger": "12000 cxTUSD",
+        "statusAfter": "BREACHED",
+        "drawAfterBreach": "reverted CoverageNotValid(STATUS_BREACHED)",
+        "secondChallenger": "reverted NotLive()",
+        "cleanPositionSettled": true,
+        "bondReleasedToUnderwriter": "12000 cxTUSD"
+      },
+      "raw": "worker/evidence/demo-run.json"
     }
   },
   "notBuilt": [
     "frontend (deliberately out of scope for this repository)",
     "demo video",
-    "pitch deck",
-    "CC3 testnet deployment"
+    "pitch deck"
   ]
 }

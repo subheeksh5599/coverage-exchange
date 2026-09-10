@@ -1,0 +1,16 @@
+{
+  "sourceTx": "0x19c528d3175bfc9d7cd0b1b7285fa07113054c5585eb8dead195b977edbc88a1",
+  "sourceBlock": 11671180,
+  "txIndex": 2,
+  "status": 1,
+  "contract": "0x1c7d4b196cb0c7b01d743fbc6116a902379c7238",
+  "eventSignature": "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef",
+  "eventName": "Transfer(address,address,uint256)",
+  "from": "0xFf304193b4694b3c374CdebcCec8A60Cb5A87107",
+  "to": "0xfe3A58A4fBd2755630E341A28006989aD08CD01d",
+  "value": "100000000",
+  "toAddressLabel": "candidate prohibited recipient",
+  "tokenDecimals": null,
+  "gasUsed": "100400",
+  "sender": "0xFf304193b4694b3c374CdebcCec8A60Cb5A87107"
+}

@@ -112,6 +112,65 @@ Full detail, including the exact payload format and the live evidence: **`docs/A
 
 ## 6. Verified, not asserted
 
+### Deployed and verified on Creditcoin CC3 testnet
+
+Chain `102031`, deployed 2026-09-10. Explorer links are in `evidence.json`.
+
+| Contract | Address |
+|---|---|
+| `DemoToken` (cxTUSD, 6 decimals, faucet) | `0x7bde1e22355677cf4ac461fec92f534dda2117b7` |
+| `AttestcoinAdapter` | `0x5800fe651f37fc22ba0ce5e5b407c0b88a59ca63` |
+| `CoverageEngine` | `0xca5e3b0076673cd64a1655221305e66f2056d2bb` |
+| `CoverageMarket` | `0xb4569dc8827a8e573f2bb34b7f68a7ecf078b0e1` |
+| `ChallengeManager` | `0x5218279fd26e9b544c27e21acb1bfc9e325a5937` |
+| `LendingAdapter` | `0xf6931e84078c7fffc4f24c18bb15850ce7a1d967` |
+| `ProhibitedRecipient` / `AmountAboveLimit` / `AmountBelowFloor` | `0x52a200d4…`, `0xba746915…`, `0x6728d182…` |
+
+```
+$ node worker/scripts/verify-deployment.mjs
+19/19 checks passed
+```
+That includes our own deployed `AttestcoinAdapter` reading the live frontier through the real ChainInfo
+precompile: `height=11674170`, with `is_height_attested` true at that height and false 10M blocks above.
+
+### The full mechanism, executed live
+
+```
+$ node worker/scripts/demo.mjs
+```
+
+Four independent wallets, no hand-written values, every step a real transaction:
+
+```
+  faucet ALICE / BOB / LENDER          3 real mints
+  BOB deposits bond capital            tx=0xf22e94ab…e68189
+  LENDER funds liquidity               tx=0x21b7a644…cf05d8
+  ALICE buys coverage                  tx=0x1a9aece9…9ed0a5   (premium 56 cxTUSD, quoted on-chain)
+  isValid                              true (VALID)
+  ALICE draws against coverage         tx=0x84c5783f…fe87be
+  fetched real proof                   height 11671180, 7 siblings, 21 continuity roots
+  previewChallenge (free, read-only)   true — "counterexample breaches the position"
+  CAROL challenges                     tx=0x5930a7e3…26686f
+  bond paid to the challenger          +12000 cxTUSD
+  coverage status                      BREACHED
+  draw after breach                    reverted CoverageNotValid(STATUS_BREACHED)
+  second challenger                    reverted NotLive()
+
+  --- honest path ---
+  ALICE buys a second position         tx=0x72fca7de…ba2d6
+  ALICE repays, freeing capacity       tx=0x4401c55c…3ff1a
+  anyone settles the clean position    tx=0x508dc45c…273b2
+  bond released                        free balance +12000 cxTUSD
+  second position status               SETTLED
+```
+
+The counterexample is a **real Sepolia USDC transfer** (`0x19c528d3…88a1`, block 11,671,180) whose
+recipient was declared prohibited in the coverage terms. Nothing was synthesised: the proof is genuine,
+the precompile verified it on-chain, and the invariant it breaks is one a lender could actually write into
+a position. Both worlds are covered — a false claim destroyed, and a clean claim settled with the bond
+returned.
+
+
 Everything below was executed on this machine and can be re-run by anyone with one command. Nothing in this section is a projection.
 
 ### Attestcoin verification, live on CC3 testnet (keyless)
@@ -167,14 +226,28 @@ Including the full counterexample suite A–H, the lookalike-emitter case, the r
 | Three predicate modules (prohibited recipient, amount ceiling, amount floor) | built, tested |
 | Coverage market (deterministic risk-priced quotes, purchase, capacity) | built, tested |
 | Lending adapter (draw gating, exposure accounting, repayment) | built, tested |
-| Deploy + deployment-verification scripts | written, dry-run verified locally |
+| Deploy + deployment-verification scripts | executed — deployment live; verification is RPC-based (see below) |
 | Keyless live Attestcoin verification | **executed against CC3 testnet, 7/7** |
 | Continuity benchmark | **measured against CC3 testnet** |
-| Deployments on CC3 testnet | **not deployed** — no funded key in this build; scripts are ready |
+| Deployment on CC3 testnet | **live** — 9 contracts, verified 19/19 by `verify-deployment.mjs` |
+| Full mechanism run live | **done** — breach + slash and settlement, `worker/evidence/demo-run.json` |
 | Demo video, deck, submission form | not started (human deliverables) |
 | Frontend | deliberately out of scope for this repository |
 
-The protocol is not deployed, so there are no deployment addresses or transaction hashes here yet, and none are implied. `worker/evidence/` contains the raw output of the two live runs shown above.
+`worker/evidence/` holds the raw output of every live run shown above: `live-precompile.json`,
+`continuity-benchmark.json`, `deployment-verification.json`, `source-evidence.json` and `demo-run.json`.
+`evidence.json` is the machine-readable index of all of it, separating MEASURED facts from anything still
+pending (demo video, deck).
+
+**A third Foundry limitation worth recording:** a `forge script` deployment cannot verify the Attestcoin
+frontier either, for the same reason no fork test can — Foundry's EVM does not implement Creditcoin's
+native precompiles. `script/VerifyDeployment.s.sol` therefore verifies what an EVM *can* see (bytecode,
+module wiring, baked-in constants, engine parameters) and reports the frontier check as expected-to-fail
+from inside Foundry; the authoritative check is `worker/scripts/verify-deployment.mjs`, which sends
+`eth_call` to the real node. Two other defects surfaced during the live run and are fixed in the scripts:
+`forge script`'s gas estimate for the wiring call was 14,313 gas short (the transaction reverted OOG and
+the call was re-sent with an explicit limit), and the demo's repayment path needed its own ERC-20
+allowance for the lending pool.
 
 ## 8. Comparison with the rest of this field
 
@@ -225,10 +298,19 @@ npm install
 node scripts/live-precompile-check.mjs
 node scripts/continuity-benchmark.mjs 5
 
-# 3. deploy to CC3 testnet (funded key required)
+# 3. live deployment checks (keyless)
+node scripts/verify-deployment.mjs      # 19/19 on the deployed addresses
+node scripts/find-source-evidence.mjs   # locate a real source-chain transaction to prove
+node scripts/demo.mjs                   # the whole mechanism, four wallets, real proofs
+
+# 4. deploy your own instance to CC3 testnet (funded key required)
 cd ../contracts
-forge script script/Deploy.s.sol:Deploy --rpc-url $CC3_TESTNET_RPC_URL --broadcast --private-key $DEPLOYER_PRIVATE_KEY
+FOUNDRY_PROFILE=live forge script script/Deploy.s.sol:Deploy \
+  --rpc-url $CC3_TESTNET_RPC_URL --broadcast --private-key $DEPLOYER_PRIVATE_KEY
 ```
+
+> If you deploy your own instance, send the `wireModules` transaction with an explicit `--gas-limit`:
+> `forge script` under-estimated it by ~14k gas on the live network and the call reverted out of gas.
 
 ## 11. Limitations
 

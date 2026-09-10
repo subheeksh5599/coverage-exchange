@@ -96,14 +96,18 @@ can be substituted at deployment without touching the contracts.
 
 ## Known limitations
 
-- **Not deployed.** No live addresses yet; the deploy script is written and dry-run verified, but this
-  release makes no claim about an on-chain deployment.
+- **Deployed on testnet only.** Live on Creditcoin CC3 testnet (chainId 102031) at the addresses in
+  `evidence.json`, verified 19/19 by `worker/scripts/verify-deployment.mjs`. It is not audited and not
+  on mainnet, and the demo asset is a faucet token — none of this is production-ready.
 - **Unit tests use precompile doubles**, because verification happens in the node rather than in EVM
   bytecode. The doubles exercise *this protocol's* logic; the cryptography is exercised only by the
   live keyless check, which calls the real precompiles over `eth_call`.
-- **A Foundry fork of CC3 cannot exercise the precompiles** (a fork copies state, not native precompile
-  implementations) and CC3 headers do not carry `prevrandao`, so a default fork fails validation. Live
-  verification therefore lives in `worker/scripts/live-precompile-check.mjs`, not in a Solidity test.
+- **No Solidity test or script can exercise the precompiles.** A Foundry fork copies state, not the node's
+  native precompile implementations, and `forge script` runs in that same EVM — so both the fork test and
+  the Solidity verification script are structurally unable to read the frontier. CC3 headers also omit
+  `prevrandao`, so a default fork fails header validation. Live verification therefore lives in
+  `worker/scripts/live-precompile-check.mjs` and `worker/scripts/verify-deployment.mjs`, which use
+  `eth_call` against the real node.
 - **Predicates are per-transaction** (see above) — the largest honest gap in the design.
 - **The market is a pricing curve, not an order book.** Underwriters do not yet compete on price.
 - **Coverage windows are attested-range relative.** A position over a window the frontier has already
