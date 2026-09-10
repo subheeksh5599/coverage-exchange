@@ -24,6 +24,9 @@ export const EXPLORER = "https://creditcoin-testnet.blockscout.com";
 
 export const CHAIN_ID = 102031;
 export const SOURCE_CHAIN_KEY = 1; // Ethereum Sepolia in Attestcoin's key space
+export const SOURCE_CHAIN_LABEL = "Sepolia";
+export const CHAIN_LABEL = "Creditcoin CC3 testnet";
+export const REPO = "https://github.com/subheeksh5599/coverage-exchange";
 
 export const ADDR = {
   engine: (process.env.NEXT_PUBLIC_ENGINE_ADDRESS ?? CONTRACTS.engine) as `0x${string}`,

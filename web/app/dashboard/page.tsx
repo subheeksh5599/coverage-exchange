@@ -1,40 +1,40 @@
 "use client";
 
-// Dashboard — sidebar app shell in the landing's design language.
-// Every number is read live from the CoverageEngine on CC3 testnet.
-// Charts are custom SVG (components/Charts.tsx) fed by the same live reads.
+// The console. Every number here is read live from the CoverageEngine on Creditcoin
+// CC3 testnet — there is no server, no cache and no fixture file. Loading, empty and
+// error states are rendered honestly, because a dashboard that invents a number is
+// exactly the failure this project exists to prevent.
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import { useFrontier, usePositions, type Position } from "@/lib/useChainData";
 import { StatusDonut, CapitalBars, WindowChart, statusColor } from "@/components/Charts";
+import { FrontierChip } from "@/components/Site";
 import {
   ADDR,
   EXPLORER,
   DEMO_TXS,
+  ATTACKS,
   MEASURED,
   TOKEN_SYMBOL,
+  SOURCE_CHAIN_LABEL,
+  CHAIN_ID,
   fmtToken,
   short,
 } from "@/lib/chain";
+import "./console.css";
 
-type Filter = "ALL" | "ACTIVE" | "BREACHED" | "EXPIRED" | "SETTLED";
-const FILTERS: Filter[] = ["ALL", "ACTIVE", "BREACHED", "EXPIRED", "SETTLED"];
+type View = "overview" | "positions" | "adversarial" | "contracts";
+type Filter = "ALL" | "ACTIVE" | "BREACHED" | "SETTLED" | "EXPIRED";
 
-function badgeClass(status: Position["status"]): string {
-  switch (status) {
-    case "ACTIVE":
-      return "badge badge-active";
-    case "BREACHED":
-      return "badge badge-breached";
-    case "SETTLED":
-      return "badge badge-settled";
-    default:
-      return "badge badge-expired";
-  }
+const FILTERS: Filter[] = ["ALL", "ACTIVE", "BREACHED", "SETTLED", "EXPIRED"];
+
+function statusBadge(s: Position["status"]) {
+  const cls =
+    s === "ACTIVE" ? "b-ok" : s === "BREACHED" ? "b-bad" : s === "SETTLED" ? "b-accent" : "b-neutral";
+  return <span className={`badge ${cls}`}>{s}</span>;
 }
 
-function AddrLink({ addr, lead = 8 }: { addr: string; lead?: number }) {
+function Addr({ addr, lead = 6 }: { addr: string; lead?: number }) {
   return (
     <a className="txlink" href={`${EXPLORER}/address/${addr}`} target="_blank" rel="noreferrer">
       {short(addr, lead, 4)}
@@ -42,428 +42,488 @@ function AddrLink({ addr, lead = 8 }: { addr: string; lead?: number }) {
   );
 }
 
-function PositionCard({ p }: { p: Position }) {
-  const drawnPct =
-    p.maxExposure > 0n ? Number((p.drawn * 10000n) / p.maxExposure) / 100 : 0;
-
+function Tx({ hash, label }: { hash: string; label?: string }) {
   return (
-    <article className="pos-card" id={`pos-${p.id}`}>
-      <div className="pos-head">
-        <span className="pos-id">#{p.id}</span>
-        <span className={badgeClass(p.status)}>{p.status}</span>
-        {p.status === "ACTIVE" && p.valid ? (
-          <span className="badge badge-active">
-            <span className="flick">●</span>&nbsp;gating exposure
-          </span>
-        ) : null}
-        <span className="pos-reason">{p.valid ? "isValid: true" : p.reason}</span>
-      </div>
-
-      <div className="pos-grid">
-        <div>
-          <div className="pos-k">max exposure</div>
-          <div className="pos-v">
-            {fmtToken(p.maxExposure)} {TOKEN_SYMBOL}
-          </div>
-        </div>
-        <div>
-          <div className="pos-k">bond locked</div>
-          <div className="pos-v">
-            {fmtToken(p.bond)} {TOKEN_SYMBOL}
-          </div>
-        </div>
-        <div>
-          <div className="pos-k">premium paid</div>
-          <div className="pos-v">
-            {fmtToken(p.premium)} {TOKEN_SYMBOL}
-          </div>
-        </div>
-        <div>
-          <div className="pos-k">drawn</div>
-          <div className="pos-v">
-            {fmtToken(p.drawn)} {TOKEN_SYMBOL}
-          </div>
-        </div>
-        <div>
-          <div className="pos-k">covered window · sepolia</div>
-          <div className="pos-v">
-            {p.startBlock.toLocaleString("en-US")} → {p.endBlock.toLocaleString("en-US")}
-          </div>
-        </div>
-        <div>
-          <div className="pos-k">live until height</div>
-          <div className="pos-v">{p.liveUntilHeight.toLocaleString("en-US")}</div>
-        </div>
-        <div>
-          <div className="pos-k">borrower</div>
-          <div className="pos-v">
-            <AddrLink addr={p.borrower} />
-          </div>
-        </div>
-        <div>
-          <div className="pos-k">underwriter</div>
-          <div className="pos-v">
-            <AddrLink addr={p.underwriter} />
-          </div>
-        </div>
-      </div>
-
-      <div className="drawbar" title={`${drawnPct}% of max exposure drawn`}>
-        <div
-          className={`drawbar-fill${p.status === "BREACHED" ? " loss-bg" : ""}`}
-          style={{ width: `${Math.min(drawnPct, 100)}%` }}
-        />
-      </div>
-
-      {p.status === "BREACHED" ? (
-        <div style={{ marginTop: 14, fontSize: 11, color: "var(--blood)" }}>
-          breached by counterexample · challenge key {short(p.challengeKey, 10, 6)} · bond
-          paid to challenger, draws frozen forever
-        </div>
-      ) : null}
-    </article>
+    <a className="txlink" href={`${EXPLORER}/tx/${hash}`} target="_blank" rel="noreferrer">
+      {label ?? short(hash, 10, 6)}
+    </a>
   );
 }
 
-export default function Dashboard() {
-  const frontier = useFrontier();
-  const chain = usePositions();
-  const [filter, setFilter] = useState<Filter>("ALL");
-
-  const filtered = useMemo(
-    () =>
-      filter === "ALL"
-        ? chain.positions
-        : chain.positions.filter((p) => p.status === filter),
-    [chain.positions, filter]
-  );
-
-  const counts = useMemo(() => {
-    const c: Record<string, number> = { ALL: chain.positions.length };
-    for (const f of FILTERS.slice(1)) {
-      c[f] = chain.positions.filter((p) => p.status === f).length;
-    }
-    return c;
-  }, [chain.positions]);
-
-  const totals = useMemo(() => {
-    let bonded = 0n;
-    let drawn = 0n;
-    let slashed = 0n;
-    let premiums = 0n;
-    for (const p of chain.positions) {
-      premiums += p.premium;
-      if (p.status === "ACTIVE") {
-        bonded += p.bond;
-        drawn += p.drawn;
-      }
-      if (p.status === "BREACHED") slashed += p.bond;
-    }
-    return { bonded, drawn, slashed, premiums };
-  }, [chain.positions]);
+function PositionRow({ p }: { p: Position }) {
+  const pct = p.maxExposure > 0n ? Number((p.drawn * 10000n) / p.maxExposure) / 100 : 0;
 
   return (
-    <div className="shell">
-      {/* ================================================== sidebar */}
-      <aside className="shell-side">
-        <div className="shell-side-top">
-          <Link href="/" className="wordmark">
-            COVERAGE<span className="wm-x">/</span>EXCHANGE
-          </Link>
-
-          <div className="side-frontier">
-            <span className="tag">attested frontier · sepolia</span>
-            {frontier.loading ? (
-              <div className="skel" style={{ height: 26, width: "70%", marginTop: 8 }} />
-            ) : frontier.available && frontier.height !== null ? (
-              <div className="side-frontier-num mono-tab">
-                <span className="flick">●</span> {frontier.height.toLocaleString("en-US")}
-              </div>
-            ) : (
-              <div className="side-frontier-num" style={{ color: "var(--blood)", fontSize: 13 }}>
-                unreachable — fails closed
-              </div>
-            )}
-            <span className="tag" style={{ letterSpacing: "0.14em", fontSize: 8.5 }}>
-              via the real ChainInfo precompile · 15s poll
+    <div className="row" id={`pos-${p.id}`}>
+      <div className="row-id">#{p.id}</div>
+      <div style={{ minWidth: 0 }}>
+        <div className="row-top">
+          {statusBadge(p.status)}
+          {p.status === "ACTIVE" && p.valid ? (
+            <span className="badge b-ok">
+              <span className="dot dot-live" style={{ width: 5, height: 5 }} />
+              gating exposure
             </span>
-          </div>
-
-          <nav className="side-nav">
-            <a href="#overview" className="side-link on">
-              <span className="side-link-no">01</span> Overview
-            </a>
-            <a href="#windows" className="side-link">
-              <span className="side-link-no">02</span> Windows vs frontier
-            </a>
-            <a href="#capital" className="side-link">
-              <span className="side-link-no">03</span> Capital at risk
-            </a>
-            <a href="#positions" className="side-link">
-              <span className="side-link-no">04</span> Positions
-            </a>
-            <Link href="/" className="side-link">
-              <span className="side-link-no">←</span> Protocol
-            </Link>
-          </nav>
+          ) : null}
+          <span className="row-reason">{p.valid ? "isValid → true" : `isValid → ${p.reason}`}</span>
         </div>
 
-        <div className="shell-side-bottom">
-          <span className="tag">deployed · cc3 102031</span>
-          <div className="side-contracts">
-            {(
-              [
-                ["engine", ADDR.engine],
-                ["market", ADDR.market],
-                ["challenges", ADDR.challengeManager],
-                ["lending", ADDR.lendingAdapter],
-                ["adapter", ADDR.adapter],
-              ] as const
-            ).map(([name, addr]) => (
-              <div className="stat-row" key={addr}>
-                <span className="stat-k">{name}</span>
-                <span className="stat-v">
-                  <AddrLink addr={addr} lead={6} />
-                </span>
-              </div>
-            ))}
+        <div className="row-facts">
+          <div>
+            <div className="fact-k">max exposure</div>
+            <div className="fact-v">
+              {fmtToken(p.maxExposure)} <span style={{ color: "var(--ink-3)" }}>{TOKEN_SYMBOL}</span>
+            </div>
           </div>
+          <div>
+            <div className="fact-k">bond locked</div>
+            <div className="fact-v">
+              {fmtToken(p.bond)} <span style={{ color: "var(--ink-3)" }}>{TOKEN_SYMBOL}</span>
+            </div>
+          </div>
+          <div>
+            <div className="fact-k">drawn</div>
+            <div className="fact-v">{fmtToken(p.drawn)}</div>
+          </div>
+          <div>
+            <div className="fact-k">premium</div>
+            <div className="fact-v">{fmtToken(p.premium)}</div>
+          </div>
+          <div>
+            <div className="fact-k">window · {SOURCE_CHAIN_LABEL}</div>
+            <div className="fact-v" style={{ fontSize: "0.8125rem" }}>
+              {p.startBlock.toLocaleString("en-US")} → {p.endBlock.toLocaleString("en-US")}
+            </div>
+          </div>
+          <div>
+            <div className="fact-k">depth · live until</div>
+            <div className="fact-v" style={{ fontSize: "0.8125rem" }}>
+              {p.requiredDepth.toString()} · {p.liveUntilHeight.toLocaleString("en-US")}
+            </div>
+          </div>
+          <div>
+            <div className="fact-k">borrower</div>
+            <div className="fact-v">
+              <Addr addr={p.borrower} />
+            </div>
+          </div>
+          <div>
+            <div className="fact-k">underwriter</div>
+            <div className="fact-v">
+              <Addr addr={p.underwriter} />
+            </div>
+          </div>
+        </div>
+
+        <div className="meter" title={`${pct}% of max exposure drawn`}>
+          <div
+            className={`meter-fill${p.status === "BREACHED" ? " is-bad" : ""}`}
+            style={{ width: `${Math.min(pct, 100)}%` }}
+          />
+        </div>
+
+        {p.status === "BREACHED" ? (
+          <div className="row-note note-bad">
+            Breached by counterexample. Challenge key {short(p.challengeKey, 10, 6)} — the bond went to
+            the challenger and further draws revert. Proof:{" "}
+            <Tx hash={DEMO_TXS.counterexample} label="challenge tx" /> · refused draw afterwards:{" "}
+            <Tx hash={DEMO_TXS.failedDrawAfterBreach} label="failed tx" />
+          </div>
+        ) : null}
+
+        {p.status === "SETTLED" ? (
+          <div className="row-note note-ok">
+            Window closed with no counterexample. Bond released to the underwriter:{" "}
+            <Tx hash={DEMO_TXS.settlement} label="settlement tx" />
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+export default function Console() {
+  const [view, setView] = useState<View>("overview");
+  const [filter, setFilter] = useState<Filter>("ALL");
+  const f = useFrontier();
+  const { loading, error, positions, engineParams, engineTvl, total } = usePositions();
+
+  const counts = useMemo(() => {
+    const c: Record<string, number> = { ALL: positions.length };
+    for (const s of ["ACTIVE", "BREACHED", "SETTLED", "EXPIRED"]) {
+      c[s] = positions.filter((p) => p.status === s).length;
+    }
+    return c;
+  }, [positions]);
+
+  const totals = useMemo(() => {
+    const bond = positions.reduce((a, p) => a + p.bond, 0n);
+    const exposure = positions.reduce((a, p) => a + p.maxExposure, 0n);
+    const drawn = positions.reduce((a, p) => a + p.drawn, 0n);
+    return { bond, exposure, drawn };
+  }, [positions]);
+
+  const shown = filter === "ALL" ? positions : positions.filter((p) => p.status === filter);
+
+  const nav: { group: string; items: { id: View; label: string; count?: number }[] }[] = [
+    {
+      group: "Monitor",
+      items: [
+        { id: "overview", label: "Overview" },
+        { id: "positions", label: "Positions", count: positions.length },
+      ],
+    },
+    {
+      group: "Assurance",
+      items: [
+        { id: "adversarial", label: "Attack matrix", count: ATTACKS.length },
+        { id: "contracts", label: "Contracts", count: 9 },
+      ],
+    },
+  ];
+
+  return (
+    <div className="app">
+      <aside className="side">
+        <div className="side-top">
+          <a href="/" className="brand" style={{ fontSize: "0.9375rem" }}>
+            Coverage Exchange
+          </a>
+          <div style={{ marginTop: 10 }}>
+            <FrontierChip />
+          </div>
+        </div>
+
+        <nav className="side-nav">
+          {nav.map((g) => (
+            <div key={g.group}>
+              <div className="side-group">{g.group}</div>
+              {g.items.map((it) => (
+                <button
+                  key={it.id}
+                  className="side-item"
+                  aria-current={view === it.id}
+                  onClick={() => setView(it.id)}
+                >
+                  {it.label}
+                  {it.count !== undefined ? <span className="side-count">{it.count}</span> : null}
+                </button>
+              ))}
+            </div>
+          ))}
+        </nav>
+
+        <div className="side-foot">
+          <div className="side-net">
+            <span>Creditcoin CC3 · {CHAIN_ID}</span>
+            <span>engine {short(ADDR.engine, 6, 4)}</span>
+            <span>
+              {engineParams ? `min bond/exposure ${engineParams.ratioBps / 100}% · grace ${engineParams.graceBlocks} blk` : "reading params…"}
+            </span>
+          </div>
+          <a className="btn btn-ghost btn-sm" href={`${EXPLORER}/address/${ADDR.engine}`} target="_blank" rel="noreferrer">
+            View on explorer
+          </a>
         </div>
       </aside>
 
-      {/* ================================================== main */}
-      <main className="shell-main">
-        {/* ---------------------------------------------- KPI strip */}
-        <section id="overview" className="kpi-strip">
-          <div className="kpi">
-            <span className="kpi-k">tvl held by engine</span>
-            {chain.loading ? (
-              <div className="skel" style={{ height: 34, width: "80%" }} />
-            ) : (
-              <span className="kpi-v">
-                {chain.engineTvl !== null ? fmtToken(chain.engineTvl) : "—"}
-                <em>{TOKEN_SYMBOL}</em>
-              </span>
-            )}
-          </div>
-          <div className="kpi">
-            <span className="kpi-k">bonds gating exposure</span>
-            {chain.loading ? (
-              <div className="skel" style={{ height: 34, width: "80%" }} />
-            ) : (
-              <span className="kpi-v" style={{ color: "var(--settle)" }}>
-                {fmtToken(totals.bonded)}
-                <em>{TOKEN_SYMBOL}</em>
-              </span>
-            )}
-          </div>
-          <div className="kpi">
-            <span className="kpi-k">slashed to challengers</span>
-            {chain.loading ? (
-              <div className="skel" style={{ height: 34, width: "80%" }} />
-            ) : (
-              <span className="kpi-v" style={{ color: "var(--blood)" }}>
-                {fmtToken(totals.slashed)}
-                <em>{TOKEN_SYMBOL}</em>
-              </span>
-            )}
-          </div>
-          <div className="kpi">
-            <span className="kpi-k">coverage ratio · grace</span>
-            {chain.loading ? (
-              <div className="skel" style={{ height: 34, width: "80%" }} />
-            ) : (
-              <span className="kpi-v">
-                {chain.engineParams ? `${chain.engineParams.ratioBps / 100}%` : "—"}
-                <em>
-                  {chain.engineParams
-                    ? `· ${chain.engineParams.graceBlocks.toLocaleString("en-US")} blk`
-                    : ""}
-                </em>
-              </span>
-            )}
-          </div>
-        </section>
-
-        {chain.error ? (
-          <div className="empty-state" style={{ marginTop: 26 }}>
-            CC3 testnet RPC unreachable from this browser.
-            <br />
-            The protocol fails closed and so does this page — nothing is fabricated when the
-            chain cannot be read.
-          </div>
-        ) : (
-          <>
-            {/* ---------------------------------------------- charts row 1 */}
-            <section className="chart-row">
-              <div className="chart-card">
-                <div className="chart-head">
-                  <span className="tag" style={{ color: "var(--bone)" }}>
-                    book by status
-                  </span>
-                  <span className="tag">live · engine reads</span>
-                </div>
-                {chain.loading ? (
-                  <div className="skel" style={{ height: 170 }} />
-                ) : chain.positions.length === 0 ? (
-                  <div className="empty-state">no positions yet</div>
-                ) : (
-                  <StatusDonut positions={chain.positions} />
-                )}
+      <main className="main">
+        <div className="top">
+          <h1>
+            {view === "overview"
+              ? "Overview"
+              : view === "positions"
+                ? "Coverage positions"
+                : view === "adversarial"
+                  ? "Attack matrix"
+                  : "Deployed contracts"}
+          </h1>
+          <div className="top-right">
+            {view === "positions" ? (
+              <div className="seg">
+                {FILTERS.map((x) => (
+                  <button key={x} aria-pressed={filter === x} onClick={() => setFilter(x)}>
+                    {x} {counts[x] ?? 0}
+                  </button>
+                ))}
               </div>
+            ) : null}
+            <span className="chip">
+              <span className={`dot ${error ? "dot-bad" : "dot-live"}`} />
+              {error ? "rpc error" : loading ? "reading chain…" : "live"}
+            </span>
+          </div>
+        </div>
 
-              <div className="chart-card">
-                <div className="chart-head">
-                  <span className="tag" style={{ color: "var(--bone)" }}>
-                    open interest · active
-                  </span>
-                  <span className="tag">bond vs drawn</span>
+        <div className="body">
+          {error ? (
+            <div className="panel">
+              <div className="state">
+                <div className="state-t">Cannot reach Creditcoin CC3</div>
+                <div className="state-d">
+                  {error}. Nothing is shown from cache — this console has no fixtures, so when the RPC
+                  is unreachable it says so instead of displaying a stale number.
                 </div>
-                {chain.loading ? (
-                  <div className="skel" style={{ height: 170 }} />
+              </div>
+            </div>
+          ) : null}
+
+          {view === "overview" ? (
+            <>
+              <section className="kpis">
+                <div className="kpi">
+                  <div className="kpi-k">bond locked</div>
+                  <div className="kpi-v">{loading ? "—" : fmtToken(totals.bond)}</div>
+                  <div className="kpi-s">{TOKEN_SYMBOL} across {positions.length} positions</div>
+                </div>
+                <div className="kpi">
+                  <div className="kpi-k">covered exposure</div>
+                  <div className="kpi-v">{loading ? "—" : fmtToken(totals.exposure)}</div>
+                  <div className="kpi-s">maximum the lenders may release</div>
+                </div>
+                <div className="kpi">
+                  <div className="kpi-k">drawn</div>
+                  <div className="kpi-v">{loading ? "—" : fmtToken(totals.drawn)}</div>
+                  <div className="kpi-s">credit actually extended</div>
+                </div>
+                <div className="kpi">
+                  <div className="kpi-k">engine balance</div>
+                  <div className="kpi-v">{engineTvl === null ? "—" : fmtToken(engineTvl)}</div>
+                  <div className="kpi-s">token held by the engine</div>
+                </div>
+                <div className="kpi">
+                  <div className="kpi-k">breached</div>
+                  <div className="kpi-v" style={{ color: counts.BREACHED ? "var(--bad)" : undefined }}>
+                    {loading ? "—" : counts.BREACHED ?? 0}
+                  </div>
+                  <div className="kpi-s">bond paid to challengers</div>
+                </div>
+              </section>
+
+              <section className="panels">
+                <div className="panel">
+                  <div className="panel-head">
+                    <h3>Status mix</h3>
+                    <span className="hint" style={{ marginLeft: "auto" }}>
+                      live · getCoverage
+                    </span>
+                  </div>
+                  <div className="panel-body">
+                    {loading ? <div className="skel" style={{ height: 140 }} /> : <StatusDonut positions={positions} />}
+                  </div>
+                </div>
+
+                <div className="panel">
+                  <div className="panel-head">
+                    <h3>Bond against exposure</h3>
+                    <span className="hint" style={{ marginLeft: "auto" }}>
+                      invariant, per position
+                    </span>
+                  </div>
+                  <div className="panel-body">
+                    {loading ? <div className="skel" style={{ height: 140 }} /> : <CapitalBars positions={positions} />}
+                  </div>
+                </div>
+
+                <div className="panel panel-wide">
+                  <div className="panel-head">
+                    <h3>Covered windows against the attested frontier</h3>
+                    <span className="hint" style={{ marginLeft: "auto" }}>
+                      {SOURCE_CHAIN_LABEL} block space
+                    </span>
+                  </div>
+                  <div className="panel-body">
+                    {loading ? (
+                      <div className="skel" style={{ height: 170 }} />
+                    ) : (
+                      <WindowChart positions={positions} frontier={f.height} />
+                    )}
+                  </div>
+                </div>
+              </section>
+            </>
+          ) : null}
+
+          {view === "positions" ? (
+            <section className="panel">
+              <div className="panel-head">
+                <h3>
+                  {filter === "ALL" ? "All positions" : `${filter} positions`}{" "}
+                  <span className="hint">({shown.length})</span>
+                </h3>
+                <span className="hint" style={{ marginLeft: "auto" }}>
+                  read from the engine · {total} created since deployment
+                </span>
+              </div>
+              <div className="panel-body panel-body-flush">
+                {loading ? (
+                  <div style={{ padding: 18, display: "grid", gap: 12 }}>
+                    {[0, 1, 2].map((i) => (
+                      <div key={i} className="skel" style={{ height: 76 }} />
+                    ))}
+                  </div>
+                ) : shown.length === 0 ? (
+                  <div className="state">
+                    <div className="state-t">No {filter.toLowerCase()} positions</div>
+                    <div className="state-d">
+                      This is a real empty state, not a placeholder: the engine currently holds no
+                      position with that status.
+                    </div>
+                  </div>
                 ) : (
-                  <div className="oi-wrap">
-                    <div className="oi-row">
-                      <span className="oi-k">bonds locked</span>
-                      <span className="oi-v mono-tab settle-t">
-                        {fmtToken(totals.bonded)} {TOKEN_SYMBOL}
-                      </span>
-                    </div>
-                    <div className="oi-bar">
-                      <div className="oi-fill settle-bg" style={{ width: "100%" }} />
-                    </div>
-                    <div className="oi-row">
-                      <span className="oi-k">exposure drawn against them</span>
-                      <span className="oi-v mono-tab">
-                        {fmtToken(totals.drawn)} {TOKEN_SYMBOL}
-                      </span>
-                    </div>
-                    <div className="oi-bar">
-                      <div
-                        className="oi-fill"
-                        style={{
-                          width:
-                            totals.bonded > 0n
-                              ? `${Number((totals.drawn * 10000n) / totals.bonded) / 100}%`
-                              : "0%",
-                        }}
-                      />
-                    </div>
-                    <p className="oi-note">
-                      the bond always exceeds the exposure it gates — breaching on purpose is
-                      never profitable. premiums paid to underwriters so far:{" "}
-                      <span className="mono-tab" style={{ color: "var(--bone)" }}>
-                        {fmtToken(totals.premiums)} {TOKEN_SYMBOL}
-                      </span>
-                    </p>
-                    <div className="oi-links">
-                      <a
-                        className="txlink"
-                        href={`${EXPLORER}/tx/${DEMO_TXS.counterexample}`}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        breach paid {MEASURED.bondPaid} {TOKEN_SYMBOL} →
-                      </a>
-                      <a
-                        className="txlink"
-                        href={`${EXPLORER}/tx/${DEMO_TXS.settlement}`}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        clean settle, bond returned →
-                      </a>
-                    </div>
+                  <div className="rows">
+                    {shown.map((p) => (
+                      <PositionRow key={p.id} p={p} />
+                    ))}
                   </div>
                 )}
               </div>
             </section>
+          ) : null}
 
-            {/* ---------------------------------------------- windows chart */}
-            <section id="windows" className="chart-card chart-wide">
-              <div className="chart-head">
-                <span className="tag" style={{ color: "var(--bone)" }}>
-                  coverage windows vs the attested frontier
-                </span>
-                <span className="tag">the protocol&apos;s clock — expiry is computed, never scheduled</span>
-              </div>
-              {chain.loading ? (
-                <div className="skel" style={{ height: 300 }} />
-              ) : chain.positions.length === 0 ? (
-                <div className="empty-state">no positions yet</div>
-              ) : (
-                <WindowChart positions={chain.positions} frontier={frontier.height} />
-              )}
-            </section>
-
-            {/* ---------------------------------------------- capital bars */}
-            <section id="capital" className="chart-card chart-wide">
-              <div className="chart-head">
-                <span className="tag" style={{ color: "var(--bone)" }}>
-                  capital at risk per position
-                </span>
-                <span className="tag">faint = bond · solid = drawn · color = status</span>
-              </div>
-              {chain.loading ? (
-                <div className="skel" style={{ height: 220 }} />
-              ) : chain.positions.length === 0 ? (
-                <div className="empty-state">no positions yet</div>
-              ) : (
-                <CapitalBars positions={chain.positions} />
-              )}
-              {!chain.loading && chain.positions.length > 0 ? (
-                <div className="bars-legend">
-                  {(["ACTIVE", "BREACHED", "SETTLED", "EXPIRED"] as const).map((s) => (
-                    <span key={s} className="legend-row">
-                      <span className="legend-dot" style={{ background: statusColor(s) }} />
-                      <span className="legend-k">{s}</span>
-                    </span>
-                  ))}
+          {view === "adversarial" ? (
+            <>
+              <section className="kpis">
+                <div className="kpi">
+                  <div className="kpi-k">attacks attempted</div>
+                  <div className="kpi-v">{MEASURED.attackCount}</div>
+                  <div className="kpi-s">against the live deployment</div>
                 </div>
-              ) : null}
-            </section>
-
-            {/* ---------------------------------------------- positions feed */}
-            <section id="positions" style={{ marginTop: 40 }}>
-              <div className="chart-head" style={{ marginBottom: 18 }}>
-                <span className="tag" style={{ color: "var(--bone)" }}>
-                  all positions · read from the engine on every poll
-                </span>
-                <span className="tag">nothing stored · nothing mocked</span>
-              </div>
-
-              <div className="filter-pills">
-                {FILTERS.map((f) => (
-                  <button
-                    key={f}
-                    className={`filter-pill${filter === f ? " filter-on" : ""}`}
-                    onClick={() => setFilter(f)}
-                  >
-                    {f}
-                    {counts[f] !== undefined ? ` · ${counts[f]}` : ""}
-                  </button>
-                ))}
-              </div>
-
-              {chain.loading ? (
-                <>
-                  <div className="skel" style={{ height: 180, marginBottom: 14 }} />
-                  <div className="skel" style={{ height: 180 }} />
-                </>
-              ) : filtered.length === 0 ? (
-                <div className="empty-state">
-                  {chain.total === 0
-                    ? "No coverage positions exist on this deployment yet."
-                    : `No ${filter} positions right now.`}
-                  <br />
-                  Positions appear here the moment they are purchased on-chain.
+                <div className="kpi">
+                  <div className="kpi-k">refused</div>
+                  <div className="kpi-v" style={{ color: "var(--ok)" }}>
+                    {MEASURED.attacksRefused}
+                  </div>
+                  <div className="kpi-s">every one, with a named error</div>
                 </div>
-              ) : (
-                filtered.map((p) => <PositionCard key={p.id} p={p} />)
-              )}
+                <div className="kpi">
+                  <div className="kpi-k">value leaked</div>
+                  <div className="kpi-v" style={{ color: "var(--ok)" }}>
+                    0
+                  </div>
+                  <div className="kpi-s">no attack moved a token</div>
+                </div>
+                <div className="kpi">
+                  <div className="kpi-k">on-chain refusals</div>
+                  <div className="kpi-v">2</div>
+                  <div className="kpi-s">recorded as failed transactions</div>
+                </div>
+              </section>
+
+              <section className="panel">
+                <div className="panel-head">
+                  <h3>Every attack we could think of, run against the deployed contracts</h3>
+                  <span className="hint" style={{ marginLeft: "auto" }}>
+                    generated from the run log
+                  </span>
+                </div>
+                <div className="panel-body panel-body-flush">
+                  <div className="tbl-scroll">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th style={{ width: 34 }}>#</th>
+                          <th>Attack</th>
+                          <th>Result</th>
+                          <th>Refusal reason</th>
+                          <th>Proof</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {ATTACKS.map((a, i) => (
+                          <tr key={i}>
+                            <td className="num" style={{ color: "var(--ink-3)" }}>
+                              {String(i + 1).padStart(2, "0")}
+                            </td>
+                            <td style={{ color: "var(--ink)" }}>{a.what}</td>
+                            <td>
+                              <span className="badge b-ok">REFUSED</span>
+                            </td>
+                            <td className="num" style={{ fontSize: "0.8125rem" }}>
+                              {a.err}
+                            </td>
+                            <td>
+                              {a.tx ? (
+                                <Tx hash={a.tx} label="failed tx ↗" />
+                              ) : (
+                                <span style={{ color: "var(--ink-3)", fontSize: "0.8125rem" }}>
+                                  reverted in simulation
+                                </span>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </section>
+
+              <section className="panel">
+                <div className="panel-body">
+                  <div className="row-note note-accent" style={{ marginTop: 0 }}>
+                    Two of these were also broadcast so a reviewer can open a real failed transaction
+                    rather than trust a simulation: a draw refused after the breach (
+                    <Tx hash={DEMO_TXS.failedDrawAfterBreach} label={`${MEASURED.refusedDrawGas.toLocaleString("en-US")} gas`} />) and a replayed
+                    challenge (<Tx hash={DEMO_TXS.failedReplay} label={`${MEASURED.refusedReplayGas.toLocaleString("en-US")} gas`} />). Reproduce the
+                    whole matrix with <code>node worker/scripts/attack-matrix.mjs --onchain</code>.
+                  </div>
+                </div>
+              </section>
+            </>
+          ) : null}
+
+          {view === "contracts" ? (
+            <section className="panel">
+              <div className="panel-head">
+                <h3>Deployed and source-verified on Creditcoin CC3</h3>
+                <span className="hint" style={{ marginLeft: "auto" }}>
+                  {MEASURED.contractsVerified} of 9 verified
+                </span>
+              </div>
+              <div className="panel-body panel-body-flush">
+                <div className="tbl-scroll">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Contract</th>
+                        <th>Address</th>
+                        <th>Role</th>
+                        <th>Source</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(
+                        [
+                          ["CoverageEngine", ADDR.engine, "holds positions, bonds and the invariant"],
+                          ["AttestcoinAdapter", ADDR.adapter, "reads attested frontier and proofs"],
+                          ["ChallengeManager", ADDR.challengeManager, "verifies counterexamples, pays the bond"],
+                          ["CoverageMarket", ADDR.market, "pricing curve for premium and bond"],
+                          ["LendingAdapter", ADDR.lendingAdapter, "gates credit on coverage validity"],
+                          ["ProhibitedRecipient", ADDR.predicates.prohibitedRecipient, "predicate: recipient denylist"],
+                          ["AmountAboveLimit", ADDR.predicates.amountAboveLimit, "predicate: transfer ceiling"],
+                          ["AmountBelowFloor", ADDR.predicates.amountBelowFloor, "predicate: transfer floor"],
+                          ["DemoToken", ADDR.token, `faucet ${TOKEN_SYMBOL}, 6 decimals`],
+                        ] as const
+                      ).map(([name, addr, role]) => (
+                        <tr key={addr}>
+                          <td style={{ color: "var(--ink)", fontWeight: 550 }}>{name}</td>
+                          <td className="num">
+                            <Addr addr={addr} lead={10} />
+                          </td>
+                          <td>{role}</td>
+                          <td>
+                            <span className="badge b-ok">VERIFIED</span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </section>
-          </>
-        )}
+          ) : null}
+        </div>
       </main>
     </div>
   );

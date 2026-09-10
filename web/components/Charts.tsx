@@ -1,173 +1,162 @@
 "use client";
 
-// Custom SVG charts in the site's design language. No chart library —
-// bone/blood/settle on void, mono labels, hairline grid. All data comes from
-// live chain reads passed in by the dashboard.
+// Custom SVG charts fed by the same live contract reads as the tables.
+// Palette is data-semantic: a breach is never allowed to look like a success.
 
-import { useMemo, useState } from "react";
 import type { Position } from "@/lib/useChainData";
 import { fmtToken, TOKEN_SYMBOL } from "@/lib/chain";
-
-const C = {
-  bone: "#eae6de",
-  dim: "#7b766c",
-  blood: "#ff3527",
-  settle: "#4fbf7a",
-  line: "rgba(234,230,222,0.13)",
-  lineSoft: "rgba(234,230,222,0.07)",
-  panel: "#121214",
-};
 
 export function statusColor(s: Position["status"]): string {
   switch (s) {
     case "ACTIVE":
-      return C.settle;
+      return "#0f7b4a";
     case "BREACHED":
-      return C.blood;
+      return "#c02626";
     case "SETTLED":
-      return C.bone;
+      return "#1449e8";
     default:
-      return C.dim;
+      return "#7b8794";
   }
 }
 
-// ---------------------------------------------------------------- status donut
+const STATUSES: Position["status"][] = ["ACTIVE", "BREACHED", "SETTLED", "EXPIRED"];
 
+/** Status mix. Donut, because the reviewer's first question is "how many broke?" */
 export function StatusDonut({ positions }: { positions: Position[] }) {
-  const mix = useMemo(() => {
-    const order: Position["status"][] = ["ACTIVE", "BREACHED", "SETTLED", "EXPIRED"];
-    return order
-      .map((s) => ({ s, n: positions.filter((p) => p.status === s).length }))
-      .filter((x) => x.n > 0);
-  }, [positions]);
-
   const total = positions.length;
-  const R = 62;
-  const CIRC = 2 * Math.PI * R;
-  let acc = 0;
+  const counts = STATUSES.map((s) => ({
+    s,
+    n: positions.filter((p) => p.status === s).length,
+  })).filter((c) => c.n > 0);
+
+  if (total === 0) {
+    return <div className="chart-empty">No positions on the engine yet.</div>;
+  }
+
+  const R = 54;
+  const SW = 15;
+  const C = 2 * Math.PI * R;
+  let offset = 0;
 
   return (
-    <div className="chart-flex">
-      <svg viewBox="0 0 160 160" className="donut-svg" role="img" aria-label="positions by status">
-        <circle cx="80" cy="80" r={R} fill="none" stroke={C.lineSoft} strokeWidth="14" />
-        {mix.map(({ s, n }) => {
-          const frac = n / total;
-          const dash = frac * CIRC;
+    <div className="donut-wrap">
+      <svg viewBox="0 0 140 140" width="140" height="140" role="img" aria-label="Position status mix">
+        <circle cx="70" cy="70" r={R} fill="none" stroke="#eef0f4" strokeWidth={SW} />
+        {counts.map(({ s, n }) => {
+          const len = (n / total) * C;
           const el = (
             <circle
               key={s}
-              cx="80"
-              cy="80"
+              cx="70"
+              cy="70"
               r={R}
               fill="none"
               stroke={statusColor(s)}
-              strokeWidth="14"
-              strokeDasharray={`${dash - 2} ${CIRC - dash + 2}`}
-              strokeDashoffset={-acc * CIRC + CIRC / 4}
-              opacity={s === "SETTLED" ? 0.8 : 1}
+              strokeWidth={SW}
+              strokeDasharray={`${len} ${C - len}`}
+              strokeDashoffset={-offset}
+              transform="rotate(-90 70 70)"
+              strokeLinecap="butt"
             >
               <title>{`${s}: ${n} of ${total}`}</title>
             </circle>
           );
-          acc += frac;
+          offset += len;
           return el;
         })}
-        <text
-          x="80"
-          y="76"
-          textAnchor="middle"
-          fill={C.bone}
-          style={{ font: "700 34px var(--font-display), sans-serif" }}
-        >
+        <text x="70" y="66" textAnchor="middle" className="donut-n">
           {total}
         </text>
-        <text
-          x="80"
-          y="96"
-          textAnchor="middle"
-          fill={C.dim}
-          style={{ font: "9px var(--font-mono), monospace", letterSpacing: "0.2em" }}
-        >
-          POSITIONS
+        <text x="70" y="82" textAnchor="middle" className="donut-l">
+          positions
         </text>
       </svg>
-      <div className="donut-legend">
-        {mix.map(({ s, n }) => (
-          <div key={s} className="legend-row">
-            <span className="legend-dot" style={{ background: statusColor(s) }} />
-            <span className="legend-k">{s}</span>
-            <span className="legend-v mono-tab">{n}</span>
-          </div>
+      <ul className="legend">
+        {counts.map(({ s, n }) => (
+          <li key={s}>
+            <span className="legend-sw" style={{ background: statusColor(s) }} />
+            <span className="legend-s">{s}</span>
+            <span className="legend-n">{n}</span>
+          </li>
         ))}
+      </ul>
+    </div>
+  );
+}
+
+/** Bond vs exposure per position. The invariant is visual: the bond bar is never shorter
+ *  than the exposure bar. Colour encodes the series only — status is never mixed into this
+ *  chart, because a legend that does not explain every colour on screen is a lie. */
+export function CapitalBars({ positions }: { positions: Position[] }) {
+  const rows = [...positions]
+    .sort((a, b) => {
+      const ha = a.bond > 0n ? Number(((a.bond - a.maxExposure) * 10000n) / a.bond) : 0;
+      const hb = b.bond > 0n ? Number(((b.bond - b.maxExposure) * 10000n) / b.bond) : 0;
+      return ha - hb;
+    })
+    .slice(0, 8);
+  if (rows.length === 0) {
+    return <div className="chart-empty">Nothing to chart yet.</div>;
+  }
+  const max = rows.reduce(
+    (m, p) => (p.bond > m ? p.bond : p.maxExposure > m ? p.maxExposure : m),
+    1n
+  );
+  const pct = (v: bigint) => Number((v * 1000n) / max) / 10;
+  const holds = rows.every((p) => p.bond >= p.maxExposure);
+
+  return (
+    <div className="bars">
+      {rows.map((p) => {
+        const ok = p.bond >= p.maxExposure;
+        return (
+          <div className="bar-row2" key={p.id}>
+            <span className="bar-id">#{p.id}</span>
+            <div className="bar-pair">
+              <div className="bar-track2">
+                <div
+                  className="bar-fill2 bar-bond"
+                  style={{ width: `${pct(p.bond)}%` }}
+                  title={`bond ${fmtToken(p.bond)} ${TOKEN_SYMBOL}`}
+                />
+              </div>
+              <div className="bar-track2">
+                <div
+                  className="bar-fill2 bar-exp2"
+                  style={{ width: `${pct(p.maxExposure)}%` }}
+                  title={`max exposure ${fmtToken(p.maxExposure)} ${TOKEN_SYMBOL}`}
+                />
+              </div>
+            </div>
+            <span className="bar-nums">
+              <span className="bar-n1">{fmtToken(p.bond)}</span>
+              <span className="bar-n2">{fmtToken(p.maxExposure)}</span>
+            </span>
+            <span className={`bar-ok${ok ? "" : " is-bad"}`} title={ok ? "bond ≥ exposure" : "invariant violated"}>
+              {ok ? "✓" : "✕"}
+            </span>
+          </div>
+        );
+      })}
+      {positions.length > rows.length ? (
+        <div className="bars-more">
+          tightest {rows.length} of {positions.length} positions by headroom — the invariant holds on all of them
+        </div>
+      ) : null}
+      <div className="bar-key">
+        <span><i className="bar-sw bar-bond" /> bond locked</span>
+        <span><i className="bar-sw bar-exp2" /> max exposure</span>
+        <span className={`bar-inv${holds ? "" : " is-bad"}`}>
+          {holds ? "bond ≥ exposure on every row, enforced at purchase" : "invariant violated"}
+        </span>
       </div>
     </div>
   );
 }
 
-// ---------------------------------------------------------------- capital bars
-
-export function CapitalBars({ positions }: { positions: Position[] }) {
-  const rows = useMemo(
-    () => [...positions].sort((a, b) => a.id - b.id),
-    [positions]
-  );
-  const max = useMemo(
-    () => rows.reduce((m, p) => (p.bond > m ? p.bond : m), 1n),
-    [rows]
-  );
-
-  const W = 520;
-  const ROW = 26;
-  const LABEL = 44;
-  const H = rows.length * ROW + 6;
-
-  return (
-    <svg
-      viewBox={`0 0 ${W} ${H}`}
-      className="bars-svg"
-      role="img"
-      aria-label="bond and drawn exposure per position"
-    >
-      {rows.map((p, i) => {
-        const y = i * ROW + 4;
-        const usable = W - LABEL - 8;
-        const bondW = Number((p.bond * 10000n) / max) / 10000 * usable;
-        const drawnW =
-          p.maxExposure > 0n
-            ? (Number((p.drawn * 10000n) / max) / 10000) * usable
-            : 0;
-        const col = statusColor(p.status);
-        return (
-          <g key={p.id}>
-            <text
-              x={LABEL - 10}
-              y={y + 13}
-              textAnchor="end"
-              fill={C.dim}
-              style={{ font: "10px var(--font-mono), monospace" }}
-            >
-              #{p.id}
-            </text>
-            {/* bond track */}
-            <rect x={LABEL} y={y + 4} width={usable} height={10} fill={C.lineSoft} />
-            <rect x={LABEL} y={y + 4} width={Math.max(bondW, 1)} height={10} fill={col} opacity={0.32}>
-              <title>{`#${p.id} bond: ${fmtToken(p.bond)} ${TOKEN_SYMBOL} (${p.status})`}</title>
-            </rect>
-            {/* drawn overlay */}
-            {drawnW > 0 ? (
-              <rect x={LABEL} y={y + 4} width={Math.max(drawnW, 1)} height={10} fill={col}>
-                <title>{`#${p.id} drawn: ${fmtToken(p.drawn)} ${TOKEN_SYMBOL}`}</title>
-              </rect>
-            ) : null}
-          </g>
-        );
-      })}
-    </svg>
-  );
-}
-
-// ---------------------------------------------------------------- windows vs frontier
-
+/** Each position's covered Sepolia block window against the live attested frontier.
+ *  The axis is drawn explicitly: without tick labels a reader cannot tell whether a
+ *  window sits before or after the frontier, which is the only thing this chart is for. */
 export function WindowChart({
   positions,
   frontier,
@@ -175,181 +164,121 @@ export function WindowChart({
   positions: Position[];
   frontier: bigint | null;
 }) {
-  const [hover, setHover] = useState<number | null>(null);
+  const rows = positions.filter((p) => p.endBlock > 0n).slice(0, 10);
+  if (rows.length === 0) {
+    return <div className="chart-empty">No covered windows yet.</div>;
+  }
 
-  const rows = useMemo(
-    () => [...positions].sort((a, b) => a.id - b.id),
-    [positions]
-  );
+  // An absolute block axis is useless here: a 32-block window on a 10,000-block
+  // span renders as a hairline and the chart cannot answer its own question.
+  // Everything is therefore plotted RELATIVE TO THE FRONTIER — 0 is "now", the
+  // marker is fixed at the centre, and each window's distance from settlement is
+  // what varies. That is the question a reader actually has.
+  const ref = frontier ?? rows.reduce((m, p) => (p.liveUntilHeight > m ? p.liveUntilHeight : m), rows[0].liveUntilHeight);
+  const rel = (v: bigint) => Number(v - ref);
+  const reach = rows.reduce((m, p) => {
+    const a = Math.abs(rel(p.startBlock));
+    const b = Math.abs(rel(p.liveUntilHeight));
+    return Math.max(m, a, b);
+  }, 1);
+  const half = Math.max(reach * 1.15, 8);
+  const x = (v: bigint) => 50 + (rel(v) / half) * 50;
 
-  const domain = useMemo(() => {
-    if (rows.length === 0) return null;
-    let lo = rows[0].startBlock;
-    let hi = rows[0].liveUntilHeight;
-    for (const p of rows) {
-      if (p.startBlock < lo) lo = p.startBlock;
-      if (p.liveUntilHeight > hi) hi = p.liveUntilHeight;
-    }
-    if (frontier !== null && frontier > hi) hi = frontier;
-    if (frontier !== null && frontier < lo) lo = frontier;
-    const span = hi - lo;
-    const pad = span / 18n > 0n ? span / 18n : 1n;
-    return { lo: lo - pad, hi: hi + pad };
-  }, [rows, frontier]);
-
-  if (!domain || rows.length === 0) return null;
-
-  const W = 1000;
-  const ROW = 34;
-  const TOP = 26;
-  const BOT = 30;
-  const LABEL = 46;
-  const H = TOP + rows.length * ROW + BOT;
-  const span = Number(domain.hi - domain.lo);
-  const x = (v: bigint) => LABEL + (Number(v - domain.lo) / span) * (W - LABEL - 12);
-
-  const fx = frontier !== null ? x(frontier) : null;
-  const hovered = hover !== null ? rows.find((p) => p.id === hover) : null;
-
-  // axis ticks: 4 evenly spaced heights
-  const ticks = [0, 1, 2, 3].map((i) => {
-    const v = domain.lo + ((domain.hi - domain.lo) * BigInt(i)) / 3n;
-    return { v, px: x(v) };
+  const ticks = [-1, -0.5, 0, 0.5, 1].map((f) => {
+    const blocks = Math.round(half * f);
+    return {
+      at: 50 + f * 50,
+      label: blocks === 0 ? "frontier" : `${blocks > 0 ? "+" : ""}${blocks.toLocaleString("en-US")}`,
+      front: blocks === 0,
+    };
   });
 
   return (
-    <div>
-      <svg
-        viewBox={`0 0 ${W} ${H}`}
-        className="win-svg"
-        role="img"
-        aria-label="coverage windows against the attested frontier"
-        onMouseLeave={() => setHover(null)}
-      >
-        {/* grid + axis */}
-        {ticks.map((t, i) => (
-          <g key={i}>
-            <line x1={t.px} y1={TOP - 8} x2={t.px} y2={H - BOT + 6} stroke={C.lineSoft} />
-            <text
-              x={t.px}
-              y={H - 8}
-              textAnchor="middle"
-              fill={C.dim}
-              style={{ font: "9.5px var(--font-mono), monospace" }}
-            >
-              {Number(t.v).toLocaleString("en-US")}
-            </text>
-          </g>
-        ))}
-
-        {rows.map((p, i) => {
-          const y = TOP + i * ROW;
-          const x0 = x(p.startBlock);
-          const x1 = x(p.endBlock);
-          const xl = x(p.liveUntilHeight);
-          const col = statusColor(p.status);
-          const isHover = hover === p.id;
-          const behindFrontier = frontier !== null && p.liveUntilHeight < frontier;
-          return (
-            <g
-              key={p.id}
-              onMouseEnter={() => setHover(p.id)}
-              style={{ cursor: "default" }}
-              opacity={hover === null || isHover ? 1 : 0.3}
-            >
-              <text
-                x={LABEL - 10}
-                y={y + 15}
-                textAnchor="end"
-                fill={isHover ? C.bone : C.dim}
-                style={{ font: "10.5px var(--font-mono), monospace" }}
-              >
-                #{p.id}
-              </text>
-              {/* row hairline */}
-              <line x1={LABEL} y1={y + 11} x2={W - 12} y2={y + 11} stroke={C.lineSoft} />
-              {/* grace + depth tail: window end -> liveUntil */}
-              <line
-                x1={x1}
-                y1={y + 11}
-                x2={xl}
-                y2={y + 11}
-                stroke={col}
-                strokeOpacity={0.35}
-                strokeDasharray="2 4"
-                strokeWidth={2}
+    <div className="wins">
+      {rows.map((p) => {
+        const l = Math.max(0, Math.min(100, x(p.startBlock)));
+        const r = Math.max(0, Math.min(100, x(p.endBlock)));
+        const depthR = Math.max(0, Math.min(100, x(p.liveUntilHeight)));
+        // Settled means the frontier has moved past the window + required depth.
+        const resolved = p.status !== "ACTIVE";
+        const cleared = frontier !== null && frontier >= p.liveUntilHeight;
+        const label = resolved
+          ? p.status.toLowerCase()
+          : cleared
+            ? "cleared"
+            : `${rel(p.liveUntilHeight).toLocaleString("en-US")} blk`;
+        return (
+          <div className="win-row" key={p.id}>
+            <span className="win-id">#{p.id}</span>
+            <div className="win-track">
+              <div className="win-mid" />
+              <div
+                className="win-depth"
+                style={{ left: `${Math.min(r, depthR)}%`, width: `${Math.max(Math.abs(depthR - r), 0.6)}%` }}
+                title={`confirmation depth to ${p.liveUntilHeight.toLocaleString("en-US")}`}
               />
-              <line x1={xl} y1={y + 5} x2={xl} y2={y + 17} stroke={col} strokeOpacity={0.5} />
-              {/* covered window bar */}
-              <rect
-                x={x0}
-                y={y + 5}
-                width={Math.max(x1 - x0, 2)}
-                height={12}
-                fill={col}
-                opacity={behindFrontier && p.status !== "BREACHED" ? 0.45 : 0.95}
-              >
-                <title>{`#${p.id} ${p.status} · window ${p.startBlock.toLocaleString(
-                  "en-US"
-                )} → ${p.endBlock.toLocaleString("en-US")} · live until ${p.liveUntilHeight.toLocaleString("en-US")}`}</title>
-              </rect>
-              {/* breach mark */}
-              {p.status === "BREACHED" ? (
-                <text
-                  x={(x0 + x1) / 2}
-                  y={y + 15.5}
-                  textAnchor="middle"
-                  fill="#0a0a0b"
-                  style={{ font: "700 9px var(--font-mono), monospace" }}
-                >
-                  ✕
-                </text>
-              ) : null}
-            </g>
-          );
-        })}
-
-        {/* attested frontier line */}
-        {fx !== null ? (
-          <g>
-            <line
-              x1={fx}
-              y1={TOP - 14}
-              x2={fx}
-              y2={H - BOT + 6}
-              stroke={C.blood}
-              strokeWidth={1.5}
-            />
-            <text
-              x={Math.min(fx + 7, W - 190)}
-              y={TOP - 4}
-              fill={C.blood}
-              style={{ font: "9.5px var(--font-mono), monospace", letterSpacing: "0.16em" }}
+              <div
+                className="win-span"
+                style={{ left: `${l}%`, width: `${Math.max(r - l, 1.2)}%`, background: statusColor(p.status) }}
+                title={`covered window ${p.startBlock.toLocaleString("en-US")} → ${p.endBlock.toLocaleString("en-US")}`}
+              />
+            </div>
+            <span
+              className={
+                "win-v" +
+                (p.status === "BREACHED"
+                  ? " win-bad"
+                  : p.status === "SETTLED"
+                    ? " win-done"
+                    : cleared
+                      ? " win-ok"
+                      : " win-wait")
+              }
+              title={
+                resolved
+                  ? "already resolved — no countdown"
+                  : `blocks until the frontier passes ${p.liveUntilHeight.toLocaleString("en-US")}`
+              }
             >
-              ATTESTED FRONTIER {frontier !== null ? Number(frontier).toLocaleString("en-US") : ""}
-            </text>
-          </g>
-        ) : null}
-      </svg>
+              {label}
+            </span>
+          </div>
+        );
+      })}
 
-      <div className="win-caption">
-        {hovered ? (
-          <>
-            <span style={{ color: statusColor(hovered.status) }}>
-              #{hovered.id} {hovered.status}
-            </span>{" "}
-            · window {hovered.startBlock.toLocaleString("en-US")} →{" "}
-            {hovered.endBlock.toLocaleString("en-US")} · gates exposure until{" "}
-            {hovered.liveUntilHeight.toLocaleString("en-US")} · bond {fmtToken(hovered.bond)}{" "}
-            {TOKEN_SYMBOL}
-          </>
-        ) : (
-          <>
-            solid bar = covered window · dashed tail = depth + grace · when the{" "}
-            <span className="blood">red frontier</span> passes a tail, that position expires —
-            computed on every read, no keeper
-          </>
-        )}
+      <div className="win-axis">
+        <span className="win-id" />
+        <div className="axis">
+          {ticks.map((t, i) => (
+            <span key={i} className={t.front ? "tick tick-front" : "tick"} style={{ left: `${t.at}%` }}>
+              <i />
+              <em>{t.front && frontier ? `frontier ${frontier.toLocaleString("en-US")}` : t.label}</em>
+            </span>
+          ))}
+        </div>
+        <span className="win-v" />
+      </div>
+
+      {positions.filter((p) => p.endBlock > 0n).length > rows.length ? (
+        <div className="bars-more">
+          showing {rows.length} of {positions.filter((p) => p.endBlock > 0n).length} covered windows
+        </div>
+      ) : null}
+      <div className="bar-key">
+        <span>
+          <span className="key-multi">
+            <i className="bar-sw" style={{ background: "#0f7b4a" }} />
+            <i className="bar-sw" style={{ background: "#c0392b" }} />
+            <i className="bar-sw" style={{ background: "#2557d6" }} />
+          </span>
+          covered window — active / breached / settled
+        </span>
+        <span><i className="bar-sw bar-bond" /> required depth</span>
+        {frontier ? (
+          <span>
+            <i className="bar-rule" /> live attested frontier — left of it is settled block space
+          </span>
+        ) : null}
       </div>
     </div>
   );

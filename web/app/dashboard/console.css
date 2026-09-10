@@ -1,0 +1,932 @@
+/* ============================================================================
+   Console — enterprise app shell. Sidebar, sticky header, dense data tables.
+   Same tokens as the marketing surface; different density.
+   ========================================================================= */
+
+.app {
+  display: grid;
+  grid-template-columns: 244px 1fr;
+  min-height: 100vh;
+  background: var(--paper);
+}
+
+@media (max-width: 1000px) {
+  .app {
+    grid-template-columns: 1fr;
+  }
+  .side {
+    display: none;
+  }
+}
+
+/* ---------------------------------------------------------------- sidebar */
+
+.side {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--line);
+  background: var(--surface);
+  overflow-y: auto;
+}
+
+.side-top {
+  padding: 18px 18px 16px;
+  border-bottom: 1px solid var(--line-2);
+}
+
+.side-nav {
+  padding: 14px 10px;
+  display: grid;
+  gap: 2px;
+}
+
+.side-group {
+  padding: 14px 8px 6px;
+  color: var(--ink-3);
+  font-family: var(--font-mono), monospace;
+  font-size: 0.625rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.side-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 10px;
+  border-radius: 6px;
+  color: var(--ink-2);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  border: 0;
+  background: transparent;
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
+  transition: background 130ms ease, color 130ms ease;
+}
+
+.side-item:hover {
+  background: var(--surface-2);
+  color: var(--ink);
+}
+
+.side-item[aria-current="true"] {
+  background: var(--accent-wash);
+  color: var(--accent);
+}
+
+.side-count {
+  margin-left: auto;
+  font-family: var(--font-mono), monospace;
+  font-size: 0.6875rem;
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.side-foot {
+  margin-top: auto;
+  padding: 14px 18px 18px;
+  border-top: 1px solid var(--line-2);
+  display: grid;
+  gap: 10px;
+}
+
+.side-net {
+  display: grid;
+  gap: 3px;
+  font-family: var(--font-mono), monospace;
+  font-size: 0.6875rem;
+  color: var(--ink-3);
+}
+
+/* ---------------------------------------------------------------- main */
+
+.main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.top {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 60px;
+  padding: 10px clamp(16px, 3vw, 32px);
+  border-bottom: 1px solid var(--line);
+  background: rgba(246, 246, 249, 0.9);
+  backdrop-filter: saturate(160%) blur(10px);
+  flex-wrap: wrap;
+}
+
+.top h1 {
+  font-size: 1.0625rem;
+  font-weight: 650;
+  letter-spacing: -0.018em;
+}
+
+.top-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.seg {
+  display: inline-flex;
+  padding: 2px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--surface);
+}
+
+.seg button {
+  padding: 5px 11px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--ink-3);
+  font-family: var(--font-mono), monospace;
+  font-size: 0.6875rem;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  transition: background 130ms ease, color 130ms ease;
+}
+
+.seg button:hover {
+  color: var(--ink);
+}
+
+.seg button[aria-pressed="true"] {
+  background: var(--ink);
+  color: #fff;
+}
+
+.body {
+  padding: clamp(18px, 3vw, 32px);
+  display: grid;
+  gap: clamp(16px, 2.2vw, 24px);
+  align-content: start;
+}
+
+/* ---------------------------------------------------------------- kpis */
+
+.kpis {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(178px, 1fr));
+}
+
+.kpi {
+  padding: 16px 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+}
+
+.kpi-k {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--ink-3);
+  font-family: var(--font-mono), monospace;
+  font-size: 0.625rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.kpi-v {
+  margin-top: 9px;
+  font-size: 1.625rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.kpi-s {
+  margin-top: 5px;
+  color: var(--ink-3);
+  font-size: 0.8125rem;
+}
+
+/* ---------------------------------------------------------------- panels */
+
+.panels {
+  display: grid;
+  gap: clamp(16px, 2vw, 22px);
+  grid-template-columns: minmax(300px, 1fr) minmax(0, 1.85fr);
+}
+
+@media (max-width: 1080px) {
+  .panels {
+    grid-template-columns: 1fr;
+  }
+}
+
+.panel {
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.panel-wide {
+  grid-column: 1 / -1;
+}
+
+.panel-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--line-2);
+}
+
+.panel-head h3 {
+  font-size: 0.9375rem;
+  font-weight: 620;
+}
+
+.panel-head .hint {
+  color: var(--ink-3);
+  font-size: 0.8125rem;
+}
+
+.panel-body {
+  padding: 18px;
+  min-width: 0;
+}
+
+.panel-body-flush {
+  padding: 0;
+}
+
+.chart-empty {
+  padding: 26px 4px;
+  color: var(--ink-3);
+  font-size: 0.875rem;
+  text-align: center;
+}
+
+/* ---------------------------------------------------------------- charts */
+
+.donut-wrap {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  flex-wrap: wrap;
+}
+
+.donut-n {
+  font-family: var(--font-sans), sans-serif;
+  font-size: 22px;
+  font-weight: 700;
+  fill: var(--ink);
+  letter-spacing: -0.03em;
+}
+
+.donut-l {
+  font-family: var(--font-mono), monospace;
+  font-size: 8.5px;
+  fill: var(--ink-3);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.legend {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 8px;
+  min-width: 150px;
+}
+
+.legend li {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 0.8125rem;
+  color: var(--ink-2);
+}
+
+.legend-sw {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  flex: none;
+}
+
+.legend-s {
+  font-family: var(--font-mono), monospace;
+  font-size: 0.6875rem;
+  letter-spacing: 0.03em;
+}
+
+.legend-n {
+  margin-left: auto;
+  font-family: var(--font-mono), monospace;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
+.bars,
+.wins {
+  display: grid;
+  gap: 9px;
+}
+
+.bar-row,
+.win-row,
+.win-front {
+  display: grid;
+  grid-template-columns: 34px 1fr 58px;
+  align-items: center;
+  gap: 10px;
+}
+
+.bar-id,
+.win-id {
+  font-family: var(--font-mono), monospace;
+  font-size: 0.6875rem;
+  color: var(--ink-3);
+}
+
+.bar-track {
+  position: relative;
+  height: 20px;
+  background: var(--surface-2);
+  border: 1px solid var(--line-2);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.bar-fill {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+}
+
+.bar-bond {
+  background: #c9d6f6;
+}
+
+.bar-exp {
+  top: 5px;
+  bottom: 5px;
+  border-radius: 2px;
+}
+
+.bar-v,
+.win-v {
+  font-family: var(--font-mono), monospace;
+  font-size: 0.6875rem;
+  color: var(--ink-2);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.bar-key {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin-top: 6px;
+  padding-top: 11px;
+  border-top: 1px solid var(--line-2);
+  color: var(--ink-3);
+  font-size: 0.75rem;
+}
+
+.bar-key span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.bar-sw {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  display: inline-block;
+}
+
+.bar-inv {
+  margin-left: auto;
+  font-family: var(--font-mono), monospace;
+  font-size: 0.6875rem;
+  color: var(--ok);
+}
+
+.win-track {
+  position: relative;
+  height: 18px;
+  background: var(--surface-2);
+  border: 1px solid var(--line-2);
+  border-radius: 4px;
+}
+
+.win-span,
+.win-depth {
+  position: absolute;
+  opacity: 0.55;
+  top: 3px;
+  bottom: 3px;
+  border-radius: 2px;
+}
+
+.win-depth {
+  background: #c9d6f6;
+}
+
+.win-marker {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 2px;
+  background: var(--ink);
+}
+
+.win-front {
+  margin-top: -4px;
+}
+
+/* ---------------------------------------------------------------- rows */
+
+.rows {
+  display: grid;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 52px 1fr;
+  gap: 14px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--line-2);
+  align-items: start;
+}
+
+.row:last-child {
+  border-bottom: 0;
+}
+
+.row:hover {
+  background: var(--surface-2);
+}
+
+.row-id {
+  font-family: var(--font-mono), monospace;
+  font-size: 0.8125rem;
+  color: var(--ink-3);
+  padding-top: 2px;
+}
+
+.row-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 9px;
+}
+
+.row-reason {
+  font-family: var(--font-mono), monospace;
+  font-size: 0.6875rem;
+  color: var(--ink-3);
+}
+
+.row-facts {
+  display: grid;
+  gap: 10px 22px;
+  grid-template-columns: repeat(auto-fit, minmax(126px, 1fr));
+  margin-top: 12px;
+}
+
+.fact-k {
+  color: var(--ink-3);
+  font-family: var(--font-mono), monospace;
+  font-size: 0.625rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.fact-v {
+  margin-top: 3px;
+  font-size: 0.875rem;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.meter {
+  position: relative;
+  height: 5px;
+  margin-top: 13px;
+  background: var(--line-2);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.meter-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--ok);
+}
+
+.meter-fill.is-bad {
+  background: var(--bad);
+}
+
+.row-note {
+  margin-top: 11px;
+  padding: 9px 11px;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+.note-bad {
+  background: var(--bad-wash);
+  color: #8f1d1d;
+}
+
+.note-ok {
+  background: var(--ok-wash);
+  color: #0b5a36;
+}
+
+.note-accent {
+  background: var(--accent-wash);
+  color: #123a9e;
+}
+
+.txlink {
+  color: var(--accent);
+  font-family: var(--font-mono), monospace;
+  font-size: 0.8125rem;
+}
+
+.txlink:hover {
+  text-decoration: underline;
+}
+
+/* ---------------------------------------------------------------- states */
+
+.state {
+  padding: 44px 20px;
+  text-align: center;
+  color: var(--ink-3);
+}
+
+.state-t {
+  color: var(--ink);
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.state-d {
+  margin-top: 6px;
+  font-size: 0.875rem;
+  max-width: 46ch;
+  margin-inline: auto;
+}
+
+.skel {
+  height: 13px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, var(--line-2) 25%, #f6f7fa 37%, var(--line-2) 63%);
+  background-size: 400% 100%;
+  animation: shimmer 1.5s ease infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: 0 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skel {
+    animation: none;
+  }
+}
+
+/* ------------------------------------------------- paired invariant bars */
+/* Two tracks per row so bond and exposure are separately readable, and both
+   numbers are printed — a chart that asserts an invariant must show the
+   quantities it compares. */
+
+.bar-row2 {
+  display: grid;
+  grid-template-columns: 30px 1fr 92px 16px;
+  align-items: center;
+  gap: 10px;
+}
+
+.bar-pair {
+  display: grid;
+  gap: 3px;
+}
+
+.bar-track2 {
+  position: relative;
+  height: 9px;
+  background: var(--surface-2);
+  border: 1px solid var(--line-2);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.bar-fill2 {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 2px;
+}
+
+.bar-exp2 {
+  background: #0f7b4a;
+}
+
+i.bar-exp2 {
+  background: #0f7b4a;
+}
+
+.bar-nums {
+  display: grid;
+  gap: 3px;
+  text-align: right;
+  font-family: var(--font-mono), monospace;
+  font-size: 0.6875rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.15;
+}
+
+.bar-n1 {
+  color: var(--ink);
+}
+
+.bar-n2 {
+  color: var(--ink-3);
+}
+
+.bar-ok {
+  font-size: 0.8125rem;
+  color: var(--ok);
+  text-align: center;
+}
+
+.bar-ok.is-bad,
+.bar-inv.is-bad {
+  color: var(--bad);
+}
+
+/* ---------------------------------------------------------- window axis */
+
+.win-axis {
+  display: grid;
+  grid-template-columns: 34px 1fr 58px;
+  align-items: start;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.axis {
+  position: relative;
+  height: 32px;
+  border-top: 1px solid var(--line);
+}
+
+.tick {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+}
+
+.tick i {
+  width: 1px;
+  height: 4px;
+  background: var(--line);
+  display: block;
+}
+
+.tick em {
+  font-family: var(--font-mono), monospace;
+  font-size: 0.5625rem;
+  font-style: normal;
+  color: var(--ink-3);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.tick-front i {
+  height: 6px;
+  width: 2px;
+  background: var(--ink);
+}
+
+.tick-front em {
+  color: var(--ink);
+  font-weight: 500;
+}
+
+/* Keep the status donut card from stranding whitespace when its neighbour is taller. */
+.panel-body:has(.donut-wrap) {
+  display: flex;
+  align-items: center;
+}
+
+.donut-wrap {
+  width: 100%;
+}
+
+/* Panel headers stay on one line at desktop widths. */
+.panel-head h3 {
+  white-space: nowrap;
+}
+
+@media (max-width: 620px) {
+  .panel-head h3 {
+    white-space: normal;
+  }
+}
+
+.panel-head .hint {
+  white-space: nowrap;
+  flex: none;
+}
+
+/* Donut card: centre its content instead of stranding whitespace when the
+   neighbouring card is taller, and give the ring room to breathe. */
+.panel-body:has(.donut-wrap) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.donut-wrap {
+  justify-content: center;
+}
+
+/* Row labels and numbers centre against the bar PAIR, not the first bar. */
+.bar-row2 > .bar-id,
+.bar-row2 > .bar-nums,
+.bar-row2 > .bar-ok {
+  align-self: center;
+}
+
+/* Cards size to their content instead of stretching to the tallest sibling —
+   a half-empty card reads as missing data. */
+.panels {
+  align-items: start;
+}
+
+.bars-more {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line-2);
+  color: var(--ink-3);
+  font-family: var(--font-mono), monospace;
+  font-size: 0.6875rem;
+}
+
+.win-span {
+  min-width: 6px;
+  box-shadow: 0 0 0 1px rgba(16, 24, 32, 0.18);
+}
+
+.key-multi {
+  display: inline-flex;
+  gap: 3px;
+  margin-right: 6px;
+}
+
+.txlink {
+  white-space: nowrap;
+}
+
+
+/* The rail is a fixed width; anything inside it must be allowed to shrink or it
+   gets sliced by the border instead of truncating. */
+.side .chip,
+.side .pill {
+  display: flex;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.side .chip > *,
+.side .pill > * {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+
+/* The frontier chip sits in a fixed-width rail: let it wrap to two lines rather
+   than be sheared by the border. A freshness indicator that is cut off mid-number
+   is worse than one that takes an extra line. */
+.side-top .chip,
+.side-top .pill {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  max-width: 100%;
+  min-width: 0;
+  white-space: normal;
+  word-break: break-word;
+  line-height: 1.4;
+}
+
+/* Row-2 cards align to the top and size to content, so a short card never leaves
+   a tall empty void under itself. */
+.panels {
+  align-items: start;
+}
+
+/* Fixed centre line = the attested frontier. Blocks left of it are in the past. */
+.win-mid {
+  position: absolute;
+  left: 50%;
+  top: -3px;
+  bottom: -3px;
+  width: 2px;
+  background: var(--ink);
+  opacity: 1;
+}
+
+.win-ok {
+  color: var(--ok);
+}
+
+
+/* Gutter wide enough for '+6,182' or 'breached' on one line — a wrapped label on
+   every row reads as a layout failure. */
+.wins .win-row,
+.wins .win-axis {
+  grid-template-columns: 34px 1fr 84px;
+}
+
+.wins .win-v {
+  white-space: nowrap;
+  text-align: right;
+}
+
+/* The frontier legend must be a rule, because the frontier is drawn as a rule. */
+.bar-rule {
+  display: inline-block;
+  width: 2px;
+  height: 12px;
+  background: var(--ink);
+  border-radius: 1px;
+  vertical-align: -2px;
+}
+
+/* Label colour is bound to status, not to "is it finished" — a breached row must
+   read red here exactly as it does in the KPI card and the donut. */
+.win-bad { color: var(--bad); }
+.win-done { color: var(--accent); }
+.win-wait { color: var(--ink-3); }
+
+
+/* --- window vs depth: the claim must out-read its own context --- */
+/* The covered window is the falsifiable claim; the confirmation depth is only
+   context for it. Previously the context bar dominated the row (71% of the axis)
+   while the claim collapsed to a 1.2% sliver. */
+.win-span {
+  min-width: 10px;
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px rgba(16, 24, 32, 0.18);
+  z-index: 2;
+}
+
+.win-depth {
+  background: repeating-linear-gradient(
+    135deg,
+    rgba(20, 73, 232, 0.16),
+    rgba(20, 73, 232, 0.16) 4px,
+    rgba(20, 73, 232, 0.07) 4px,
+    rgba(20, 73, 232, 0.07) 8px
+  ) !important;
+  border: 1px solid rgba(20, 73, 232, 0.22);
+  border-radius: 2px;
+  z-index: 1;
+}

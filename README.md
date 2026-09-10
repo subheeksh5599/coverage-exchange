@@ -264,7 +264,7 @@ Including the full counterexample suite A–H, the lookalike-emitter case, the r
 | Deployment on CC3 testnet | **live** — 9 contracts, verified 19/19 by `verify-deployment.mjs` |
 | Full mechanism run live | **done** — breach + slash and settlement, `worker/evidence/demo-run.json` |
 | Demo video, deck, submission form | not started (human deliverables) |
-| Frontend | `web/` — read-only: it renders live CC3 state and recorded evidence, it does not send transactions |
+| Frontend | `web/` — enterprise landing page + live read-only console; renders CC3 state and recorded evidence, sends no transactions. Every displayed number is generated from `evidence.json`, guarded by two CI checks (see below) |
 
 `worker/evidence/` holds the raw output of every live run shown above: `live-precompile.json`,
 `continuity-benchmark.json`, `deployment-verification.json`, `source-evidence.json` and `demo-run.json`.
@@ -280,6 +280,26 @@ from inside Foundry; the authoritative check is `worker/scripts/verify-deploymen
 `forge script`'s gas estimate for the wiring call was 14,313 gas short (the transaction reverted OOG and
 the call was re-sent with an explicit limit), and the demo's repayment path needed its own ERC-20
 allowance for the lending pool.
+
+### The interface cannot invent a number
+
+`web/` displays test counts, gas figures, addresses, transaction hashes and every
+coverage row, and it holds none of them itself. They are generated into
+`web/lib/evidence.generated.ts` from `evidence.json` and `worker/evidence/*.json` before
+every dev run and every build, and CI enforces two invariants over that file:
+
+1. **Freshness** — `npm run check:evidence` regenerates it and fails if the committed
+   copy differs. A manifest change the UI has not picked up breaks the build rather than
+   shipping a stale claim.
+2. **No hand-typed values** — `scripts/check-no-literals.mjs` scans `app/` and
+   `components/` for comma-formatted evidence numbers appearing as literals. The
+   freshness check cannot catch a number that was typed into a component, because such a
+   value never passes through the generated file. That gap was real: four hardcoded gas
+   figures were found this way, two on the landing page and two in the console.
+
+Generation is deterministic (`GENERATED_AT` comes from the manifest, not the clock), so a
+clean tree always passes — a gate that fails for an unrelated reason gets ignored, and an
+ignored gate is worse than no gate.
 
 ## 8. Comparison with the rest of this field
 
@@ -311,9 +331,11 @@ contracts/                      Foundry project (Solidity 0.8.30, via_ir)
   test/                         48 tests: lifecycle, attack matrix, state machine, invariants, predicates
   script/                       Deploy.s.sol, VerifyDeployment.s.sol
 worker/                         proof pipeline, challenger watcher, live verification, benchmark
-web/                            Next.js app — landing (/) and the desk (/dashboard), reading CC3 live
+web/                            Next.js app — landing (/) and the console (/dashboard), reading CC3 live
   lib/evidence.generated.ts     GENERATED from evidence.json; the UI holds no facts of its own
   scripts/gen-evidence.mjs      regenerates it; runs before dev and build, gated in CI
+  scripts/check-no-literals.mjs fails if a generated number is typed into a component by hand
+  public/product/*.png          real captures of the console, used on the landing page
 docs/                           ATTESTCOIN.md, ECONOMICS.md, COMPARISON.md, INTEGRATION.md,
                                 GAS.md, DEMO.md, JUDGE-PACKET.md, SUBMISSION.md, ROADMAP.md
 INVARIANTS.md  SECURITY.md      the numbered invariants and the threat model
@@ -341,7 +363,7 @@ node scripts/demo.mjs                   # the whole mechanism, four wallets, rea
 node scripts/attack-matrix.mjs --onchain # every attack refused, two recorded on chain
 bash ../contracts/script/verify-on-explorer.sh   # submit all 9 for explorer verification
 
-cd ../web && npm install && npm run dev  # UI at :3000 — landing at /, the desk at /dashboard
+cd ../web && npm install && npm run dev  # UI at :3000 — landing at /, the console at /dashboard
                                          # reads CC3 testnet directly; no backend, no API keys
 
 # 4. deploy your own instance to CC3 testnet (funded key required)

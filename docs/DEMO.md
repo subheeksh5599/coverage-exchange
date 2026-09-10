@@ -14,10 +14,15 @@ Start the app:
 cd web && npm install && npm run dev      # http://localhost:3000
 ```
 
-Then open these tabs in order, so you never scroll while live:
+Then open these tabs in order, so you never scroll while live. The landing page also carries three real
+screenshots of the console — you never have to describe what the product looks like:
 
 1. `http://localhost:3000/` — **the landing**, with the Sepolia frontier live in the header
-2. `http://localhost:3000/dashboard` — **the desk**: every position, its status, and the attack matrix
+2. `http://localhost:3000/dashboard` — **the console**. Four views, click them in this order:
+   - **Overview** — bond locked, covered exposure, drawn, the invariant per position, covered windows against the live frontier
+   - **Positions** — every position with its live `isValid` reason; filter to ACTIVE for the two still in flight
+   - **Attack matrix** — all 15 attempts, each with the revert reason it hit
+   - **Contracts** — the 9 verified deployments on CC3
 3. `https://creditcoin-testnet.blockscout.com/tx/0x5930a7e3e29f6394839dd34c6688a501778ad2b928c6877b95a44ecdd326686f` — **the challenge** (the money shot)
 4. `https://creditcoin-testnet.blockscout.com/tx/0xb62ce5ed691e7521c2c05430c1fc8c5069d42ff649dc0db7680056df8969fbfa` — a draw **refused on chain** after the breach (status: failed)
 5. `https://ethereum-sepolia.etherscan.io/tx/0x19c528d3175bfc9d7cd0b1b7285fa07113054c5585eb8dead195b977edbc88a1` — the real Sepolia transfer used as evidence
@@ -41,7 +46,7 @@ scripts in `worker/`, where the wallets are. Don't imply you're clicking to send
 
 ## 0:20 – 0:45 — what a coverage position is
 
-**On screen:** tab 2, the dashboard. Point at the breached position's row.
+**On screen:** tab 2, the console. Open **Overview**, then point at the breached position's row.
 
 **Say:**
 > "This is a coverage position. It says: this borrower may draw up to ten thousand, only while the
@@ -52,7 +57,7 @@ scripts in `worker/`, where the wallets are. Don't imply you're clicking to send
 
 ## 0:45 – 1:15 — the honest path works
 
-**On screen:** stay on tab 2, the ACTIVE position and its draw.
+**On screen:** stay on tab 2. Click **Positions**, filter to **ACTIVE**, and show the draw that succeeded.
 
 **Say:**
 > "The borrower bought coverage, the lender released capital against it, and the draw succeeded — two
@@ -80,7 +85,7 @@ scripts in `worker/`, where the wallets are. Don't imply you're clicking to send
 
 ## 2:20 – 2:45 — the consequence
 
-**On screen:** tab 2, scroll to the attack matrix; then tab 4, the failed transaction.
+**On screen:** tab 2, click **Attack matrix**; then tab 4, the failed transaction.
 
 **Say:**
 > "The borrower immediately tries to draw again. Refused on chain — status failed, and the reason is in
@@ -90,7 +95,7 @@ scripts in `worker/`, where the wallets are. Don't imply you're clicking to send
 
 ## 2:45 – 3:00 — the other world
 
-**On screen:** tab 6, then back to the dashboard's SETTLED row.
+**On screen:** tab 6, then back to tab 2 → **Positions** → **SETTLED**.
 
 **Say:**
 > "And the honest case: a second position nobody breached. The window closed, the frontier covered it,
