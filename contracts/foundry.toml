@@ -1,0 +1,41 @@
+[profile.default]
+src = "src"
+out = "out"
+libs = ["lib", "dependencies"]
+test = "test"
+script = "script"
+solc_version = "0.8.30"
+optimizer = true
+optimizer_runs = 200
+via_ir = true
+evm_version = "cancun"
+fs_permissions = [{ access = "read", path = "./" }]
+
+[profile.default.fmt]
+line_length = 110
+tab_width = 4
+bracket_spacing = false
+
+[rpc_endpoints]
+cc3_testnet = "${CC3_TESTNET_RPC_URL}"
+sepolia = "${SEPOLIA_RPC_URL}"
+
+[etherscan]
+cc3_testnet = { key = "${CC3_EXPLORER_API_KEY}", chain = 102031 }
+
+# Profile for forking Creditcoin. Two things learned the hard way:
+#  1. CC3 blocks do not populate the post-merge `prevrandao` header field, so a default (Cancun) fork
+#     fails header validation — hence evm_version = "london" here.
+#  2. A fork copies state, not the node's native precompile implementations, so a fork CANNOT exercise
+#     0x0FD2/0x0FD3. Live Attestcoin verification therefore lives in worker/scripts/live-precompile-check.mjs,
+#     which calls the real precompiles over eth_call. Do not write a Solidity fork test that claims to
+#     verify a proof: it will pass for the wrong reason.
+[profile.live]
+src = "src"
+test = "test"
+libs = ["lib", "dependencies"]
+solc_version = "0.8.30"
+optimizer = true
+optimizer_runs = 200
+via_ir = true
+evm_version = "london"

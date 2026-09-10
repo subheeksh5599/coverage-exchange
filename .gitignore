@@ -13,8 +13,12 @@ TODO*.md
 .env.*
 !.env.example
 
+# forge dependencies ship as git submodules (pinned commits) — clone with --recursive,
+# or run `forge install` inside contracts/.
+
 # deps / build artefacts
 node_modules/
+worker/node_modules/
 out/
 artifacts/
 cache/
