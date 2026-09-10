@@ -8,17 +8,26 @@ checked. No terminal on screen, no GitHub.
 
 ## Before you hit record
 
-Start the app:
+Start the app. Easiest — it is already deployed, so there is nothing to run:
 
 ```
-cd web && npm install && npm run dev      # http://localhost:3000
+https://coverage-exchange.vercel.app                # landing
+https://coverage-exchange.vercel.app/dashboard      # console
+```
+
+Or serve it locally if you would rather not depend on the network while recording:
+
+```
+cd web && npm install && npm run dev                # http://localhost:3000
 ```
 
 Then open these tabs in order, so you never scroll while live. The landing page also carries three real
 screenshots of the console — you never have to describe what the product looks like:
 
-1. `http://localhost:3000/` — **the landing**, with the Sepolia frontier live in the header
-2. `http://localhost:3000/dashboard` — **the console**. Four views, click them in this order:
+1. `https://coverage-exchange.vercel.app/` — **the landing**, with the Sepolia frontier live in the header
+   (or `http://localhost:3000/` if you started it locally)
+2. `https://coverage-exchange.vercel.app/dashboard` — **the console**. Four views, click them in this order
+   (or `http://localhost:3000/dashboard` locally):
    - **Overview** — bond locked, covered exposure, drawn, the invariant per position, covered windows against the live frontier
    - **Positions** — every position with its live `isValid` reason; filter to ACTIVE for the two still in flight
    - **Attack matrix** — all 15 attempts, each with the revert reason it hit

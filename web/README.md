@@ -89,3 +89,30 @@ npm run check:evidence
 Contract addresses default to the live CC3 deployment and can be overridden through
 `.env` (see `.env.example`). The UI is **read-only** — it renders state and recorded
 evidence; the wallets and every state-changing script live in `worker/`.
+
+## Deployment
+
+Live at **<https://coverage-exchange.vercel.app>** (Vercel, project `coverage-exchange`).
+
+This directory is the Vercel project root, and `vercel.json` pins the build explicitly:
+
+```json
+{ "framework": "nextjs", "installCommand": "npm install --no-audit --no-fund", "buildCommand": "next build" }
+```
+
+`buildCommand` is deliberately `next build` rather than `npm run build`. The `prebuild`
+hook runs `scripts/gen-evidence.mjs`, which reads `../evidence.json` and
+`../worker/evidence/*.json` — files **outside** this directory. Vercel uploads only the
+project directory, so that hook cannot run there. Skipping it is safe because
+`lib/evidence.generated.ts` is committed and CI fails the build if it ever disagrees with
+the manifest (`npm run check:evidence`), so the deployed file is the same file CI verified.
+Running `npm run build` locally still regenerates it, as it should.
+
+`web/.vercelignore` keeps `node_modules`, `.next` and `.vercel` out of the upload.
+
+Deploying from `web/` without an explicit `--name` would attach to the account's existing
+project called `web`, so use:
+
+```bash
+cd web && vercel deploy --prod --yes --name coverage-exchange
+```

@@ -113,12 +113,19 @@ Addresses, and every transaction hash, in `evidence.json`.
 
 ### Can I see it without a terminal?
 
-Yes. `cd web && npm install && npm run dev` serves two routes:
+Yes — it is deployed, so nothing needs to be installed:
+
+**<https://coverage-exchange.vercel.app>**
 
 | Route | What it shows |
 |---|---|
 | `/` | the mechanism and the invariant, with Ethereum's attested frontier read live in the header |
-| `/dashboard` | every position on the deployed engine — status, bond, drawn, and the validity reason from `isValid` — plus the 15-row attack matrix |
+| `/dashboard` | four views of the deployed engine: **Overview** (bond, exposure, drawn, the per-position invariant, covered windows against the live frontier), **Positions** (every position with the validity reason from `isValid`), **Attack matrix** (all 15 attempts and the revert each one hit), **Contracts** (the 9 verified deployments) |
+
+The console reads Creditcoin CC3 from your browser. If the RPC is unreachable it says so rather
+than showing a stale number, so an empty state on that page is a real signal, not a broken deploy.
+
+To run it yourself instead: `cd web && npm install && npm run dev`.
 
 Two things about this UI are deliberate and worth a reviewer's attention:
 

@@ -6,6 +6,10 @@ A lender should not have to trust that a borrower stayed inside a risk policy on
 
 Built for **BUIDL CTC 2026 Fall** (Creditcoin & Credit Labs, Attestcoin Protocol theme).
 
+**Live:** <https://coverage-exchange.vercel.app> — the landing page, with the console at
+[`/dashboard`](https://coverage-exchange.vercel.app/dashboard). Both read Creditcoin CC3 testnet
+directly from the browser; nothing is seeded in the UI.
+
 ---
 
 ## 1. The problem
