@@ -140,6 +140,10 @@ saving: 126213 gas (30.1%), calldata 3856 bytes
 
 Honest reading: this is a **30% saving, not a 100× one**. The batch overload shares the expensive continuity chain across claims, but each claim still carries its own merkle path and proven bytes, which dominate the calldata. The compression is real, it grows with the number of claims in the window, and it is the reason the protocol is built on the batch path — but anyone claiming an order-of-magnitude win here has not measured it.
 
+### Gas, measured
+
+`forge test --gas-report` on the shipped suite: `CoverageEngine` 7,883 B runtime; `isValid` 1,302–25,884 gas; `LendingAdapter.draw` 62,948–150,649; `ChallengeManager.challenge` 52,928–208,029 (the verification path, paid by the challenger who receives the bond); predicates ~2,230. Full table with commentary in **`docs/GAS.md`**.
+
 ### Contract tests
 
 ```
@@ -202,7 +206,7 @@ contracts/                      Foundry project (Solidity 0.8.30, via_ir)
   test/                         48 tests: lifecycle, attack matrix, state machine, invariants, predicates
   script/                       Deploy.s.sol, VerifyDeployment.s.sol
 worker/                         proof pipeline, challenger watcher, live verification, benchmark
-docs/                           ATTESTCOIN.md, ECONOMICS.md, COMPARISON.md, INTEGRATION.md
+docs/                           ATTESTCOIN.md, ECONOMICS.md, COMPARISON.md, INTEGRATION.md, GAS.md
 INVARIANTS.md  SECURITY.md      the numbered invariants and the threat model
 ```
 

@@ -23,7 +23,7 @@
     "ascContracts": "@gluwa/asc-contracts 0.2.1"
   },
   "contracts": {
-    "_status": "PENDING — not deployed. Addresses are deliberately null rather than omitted so that a reviewer can see the deployment has not happened.",
+    "_status": "PENDING \u2014 not deployed. Addresses are deliberately null rather than omitted so that a reviewer can see the deployment has not happened.",
     "demoToken": null,
     "attestcoinAdapter": null,
     "coverageEngine": null,
@@ -35,7 +35,7 @@
     "amountBelowFloor": null
   },
   "transactions": {
-    "_status": "PENDING — requires a deployment. The demo script names the exact transactions that will be listed here.",
+    "_status": "PENDING \u2014 requires a deployment. The demo script names the exact transactions that will be listed here.",
     "coverageCreation": null,
     "purchase": null,
     "draw": null,
@@ -103,6 +103,35 @@
       "tool": "forge script script/Deploy.s.sol:Deploy",
       "gasUsed": 6084522,
       "note": "dry run against a local EVM; no funded key was used"
+    },
+    "gasReport": {
+      "tool": "forge test --gas-report",
+      "doc": "docs/GAS.md",
+      "highlights": {
+        "coverageEngine": {
+          "runtimeBytes": 7883,
+          "deployGas": 1754518
+        },
+        "isValid": {
+          "min": 1302,
+          "avg": 13135,
+          "max": 25884
+        },
+        "lendingDraw": {
+          "min": 62948,
+          "avg": 74619,
+          "max": 150649
+        },
+        "challenge": {
+          "min": 52928,
+          "avg": 125484,
+          "max": 208029
+        },
+        "predicateEvaluate": {
+          "avg": 2230
+        }
+      },
+      "note": "All values produced by the committed test suite; no estimates."
     }
   },
   "notBuilt": [
