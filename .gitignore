@@ -1,0 +1,37 @@
+# private build docs — never commit
+EXECUTION-CHECKLIST.md
+*-checklist.md
+*-CHECKLIST.md
+RUNBOOK*.md
+runbook*.md
+NOTES*.md
+notes/
+TODO*.md
+
+# secrets — never commit (commit .env.example only)
+.env
+.env.*
+!.env.example
+
+# deps / build artefacts
+node_modules/
+out/
+artifacts/
+cache/
+broadcast/
+forge-cache/
+typechain-types/
+coverage/
+dist/
+build/
+.next/
+*.tsbuildinfo
+
+# logs / local state
+*.log
+logs/
+tmp/
+demo/local/state/
+demo/local/*.json
+.DS_Store
+Thumbs.db
