@@ -1,0 +1,22 @@
+{
+  "generatedAt": "2026-09-10T08:39:09.017Z",
+  "network": {
+    "cc3Rpc": "https://rpc.cc3-testnet.creditcoin.network",
+    "sepoliaRpc": "https://ethereum-sepolia-rpc.publicnode.com",
+    "chainKey": 1
+  },
+  "frontier": 11673780,
+  "claims": 5,
+  "naive": {
+    "calls": 5,
+    "gas": "419994",
+    "calldataBytes": 22676
+  },
+  "batch": {
+    "calls": 1,
+    "gas": "293781",
+    "calldataBytes": 18820,
+    "detail": "5 transactions, 169 shared continuity roots (11668632..11668780)"
+  },
+  "note": "Either shape yields one verifyAndEmit call per claim; only the continuity evidence is shared."
+}
