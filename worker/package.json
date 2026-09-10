@@ -1,0 +1,20 @@
+{
+  "name": "coverage-exchange-worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Off-chain worker + keyless verification tooling for Coverage Exchange (BUIDL CTC 2026 Fall)",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "live-check": "node scripts/live-precompile-check.mjs",
+    "benchmark": "node scripts/continuity-benchmark.mjs",
+    "watch": "node src/watch.mjs"
+  },
+  "dependencies": {
+    "@gluwa/usc-sdk": "0.18.0",
+    "ethers": "^6.13.4"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3"
+  }
+}

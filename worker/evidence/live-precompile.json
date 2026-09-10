@@ -1,0 +1,64 @@
+{
+  "generatedAt": "2026-09-10T08:37:11.282Z",
+  "network": {
+    "cc3Rpc": "https://rpc.cc3-testnet.creditcoin.network",
+    "sepoliaRpc": "https://ethereum-sepolia-rpc.publicnode.com",
+    "chainKey": 1
+  },
+  "proofBuilder": "https://prover.cc3-testnet.creditcoin.network",
+  "frontier": {
+    "height": 11673770,
+    "hash": "0xe44a92d95d74f2baa8f400d217bcb0d6578c9db25025f7a29cbadf2251b889cd",
+    "isAttestation": true,
+    "exists": true
+  },
+  "proof": {
+    "txHash": "0x167938545c8d4fffc3701b51fe655e003157d6a0b1b6e1b2426201331aa3f7cc",
+    "headerNumber": 11653808,
+    "txIndex": 0,
+    "merkleRoot": "0xa3ab328609aa855e4d4a04ea54ce2649d910f3925fce88528eddb56f0cd98a97",
+    "siblings": 7,
+    "continuityRoots": 93
+  },
+  "claimed": {
+    "realProofAccepted": true,
+    "tamperedProofRejected": true
+  },
+  "checks": [
+    {
+      "step": "chaininfo.frontier",
+      "ok": true,
+      "detail": "frontier=11673770 hash=0xe44a92d95d74f2baa8f400d217bcb0d6578c9db25025f7a29cbadf2251b889cd"
+    },
+    {
+      "step": "chaininfo.is_height_attested(frontier)",
+      "ok": true,
+      "detail": "-> true"
+    },
+    {
+      "step": "chaininfo.is_height_attested(frontier + 10M)",
+      "ok": true,
+      "detail": "-> false (must be false)"
+    },
+    {
+      "step": "sepolia.pickTransaction",
+      "ok": true,
+      "detail": "supplied 0x167938545c8d4fffc3701b51fe655e003157d6a0b1b6e1b2426201331aa3f7cc"
+    },
+    {
+      "step": "proofBuilder.fetchProof",
+      "ok": true,
+      "detail": "height=11653808 txIndex=0 siblings=7 roots=93"
+    },
+    {
+      "step": "blockprover.verify(realProof)",
+      "ok": true,
+      "detail": "-> true"
+    },
+    {
+      "step": "blockprover.verify(tamperedPayload)",
+      "ok": true,
+      "detail": "reverted as expected: Error: execution reverted: \"Merkle proof validation failed\" (action=\"call\", data"
+    }
+  ]
+}
