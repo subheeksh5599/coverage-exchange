@@ -1,0 +1,89 @@
+name: ci
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  contracts:
+    name: contracts (build + test)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: contracts
+    steps:
+      - uses: actions/checkout@v4
+      - uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: v1.7.1
+      - name: Install dependencies
+        run: |
+          forge install foundry-rs/forge-std@v1.9.4
+          forge install OpenZeppelin/openzeppelin-contracts@v5.1.0
+      - name: Build
+        run: forge build --sizes
+      - name: Format check
+        run: forge fmt --check
+      - name: Test
+        run: forge test -vv
+
+  worker:
+    name: worker (syntax + typecheck)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: worker
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm install --no-audit --no-fund
+      - name: Syntax check every script
+        run: |
+          for f in scripts/*.mjs src/*.mjs; do node --check "$f"; done
+      - name: Typecheck
+        run: npx tsc --noEmit --allowJs --checkJs --target es2022 --module nodenext --moduleResolution nodenext --skipLibCheck src/*.mjs scripts/*.mjs || true
+
+  secrets:
+    name: no secrets committed
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Fail on private keys or .env files in history
+        run: |
+          set -e
+          if git log --all --diff-filter=A --name-only --pretty=format: | grep -E '(^|/)\.env$|(^|/)\.env\.' ; then
+            echo "::error::a .env file is committed"; exit 1
+          fi
+          # 32-byte hex literals that are not obviously placeholders, hashes or test values
+          if git grep -nEI '0x[0-9a-fA-F]{64}' -- ':!package-lock.json' ':!worker/evidence' | grep -viE 'keccak|hash|root|digest|topic|sig|0x0{10,}|example|placeholder'; then
+            echo "::warning::64-hex literals found — confirm none of them is a private key"
+          fi
+          echo "no .env files in history"
+
+  live-attestcoin:
+    name: live Attestcoin check (CC3 testnet)
+    runs-on: ubuntu-latest
+    # Only on demand: this job talks to a public network and to the proof builder, so it is opt-in
+    # rather than a flaky gate on every push.
+    if: github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - working-directory: worker
+        run: npm install --no-audit --no-fund
+      - name: Keyless live verification against the real precompiles
+        working-directory: worker
+        run: node scripts/live-precompile-check.mjs
+      - name: Continuity compression benchmark
+        working-directory: worker
+        run: node scripts/continuity-benchmark.mjs 5
