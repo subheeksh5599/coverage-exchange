@@ -1,0 +1,120 @@
+{
+  "generatedAt": "2026-09-10T10:51:52.653Z",
+  "endToEndSeconds": 225,
+  "transactions": 16,
+  "totalGas": 2623406,
+  "rows": [
+    {
+      "step": "faucet ALICE",
+      "block": 5462989,
+      "ts": 1789035600,
+      "gas": 38206,
+      "status": 1
+    },
+    {
+      "step": "faucet BOB",
+      "block": 5462990,
+      "ts": 1789035615,
+      "gas": 38206,
+      "status": 1
+    },
+    {
+      "step": "faucet LENDER",
+      "block": 5462991,
+      "ts": 1789035630,
+      "gas": 38206,
+      "status": 1
+    },
+    {
+      "step": "BOB approves the engine",
+      "block": 5462992,
+      "ts": 1789035645,
+      "gas": 37030,
+      "status": 1
+    },
+    {
+      "step": "BOB deposits bond capital",
+      "block": 5462993,
+      "ts": 1789035660,
+      "gas": 155596,
+      "status": 1
+    },
+    {
+      "step": "ALICE approves the pool (for repayment)",
+      "block": 5462994,
+      "ts": 1789035675,
+      "gas": 37030,
+      "status": 1
+    },
+    {
+      "step": "LENDER approves the pool (for repayment)",
+      "block": 5462995,
+      "ts": 1789035690,
+      "gas": 37030,
+      "status": 1
+    },
+    {
+      "step": "LENDER funds liquidity",
+      "block": 5462996,
+      "ts": 1789035705,
+      "gas": 96390,
+      "status": 1
+    },
+    {
+      "step": "ALICE approves the market",
+      "block": 5462997,
+      "ts": 1789035720,
+      "gas": 37030,
+      "status": 1
+    },
+    {
+      "step": "ALICE buys coverage",
+      "block": 5462998,
+      "ts": 1789035735,
+      "gas": 371652,
+      "status": 1
+    },
+    {
+      "step": "ALICE draws against coverage",
+      "block": 5462999,
+      "ts": 1789035750,
+      "gas": 288092,
+      "status": 1
+    },
+    {
+      "step": "CAROL challenges with the counterexample",
+      "block": 5463000,
+      "ts": 1789035765,
+      "gas": 396004,
+      "status": 1
+    },
+    {
+      "step": "ALICE buys a second position",
+      "block": 5463001,
+      "ts": 1789035780,
+      "gas": 371652,
+      "status": 1
+    },
+    {
+      "step": "ALICE draws part of it",
+      "block": 5463002,
+      "ts": 1789035795,
+      "gas": 288092,
+      "status": 1
+    },
+    {
+      "step": "ALICE repays, freeing capacity",
+      "block": 5463003,
+      "ts": 1789035810,
+      "gas": 211778,
+      "status": 1
+    },
+    {
+      "step": "anyone settles the clean position",
+      "block": 5463004,
+      "ts": 1789035825,
+      "gas": 181412,
+      "status": 1
+    }
+  ]
+}

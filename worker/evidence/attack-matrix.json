@@ -1,0 +1,107 @@
+{
+  "generatedAt": "2026-09-10T10:51:20.393Z",
+  "target": {
+    "chainId": 102031,
+    "engine": "0xca5e3b0076673cd64a1655221305e66f2056d2bb",
+    "challengeManager": "0x5218279fd26e9b544c27e21acb1bfc9e325a5937"
+  },
+  "positions": {
+    "breached": "1",
+    "active": "3"
+  },
+  "total": 15,
+  "refused": 15,
+  "leaked": [],
+  "results": [
+    {
+      "attack": "draw against an unknown position",
+      "refused": true,
+      "reason": "UnknownCoverage(999999)",
+      "txHash": null
+    },
+    {
+      "attack": "draw as a different counterparty",
+      "refused": true,
+      "reason": "NotTheCounterparty()",
+      "txHash": null
+    },
+    {
+      "attack": "draw above the position maximum",
+      "refused": true,
+      "reason": "CoverageNotValid(CAPACITY_EXCEEDED)",
+      "txHash": null
+    },
+    {
+      "attack": "underwriter withdraws the locked bond",
+      "refused": true,
+      "reason": "InsufficientFreeBalance(2904000000000, 2904000000001)",
+      "txHash": null
+    },
+    {
+      "attack": "create a position with bond < exposure",
+      "refused": true,
+      "reason": "BondBelowExposure(1000000, 10000000000)",
+      "txHash": null
+    },
+    {
+      "attack": "stranger calls wireModules",
+      "refused": true,
+      "reason": "OwnableUnauthorizedAccount(0xc0443353515d8998DE0B8cA0549a6dD2E02f1130)",
+      "txHash": null
+    },
+    {
+      "attack": "challenge with a fabricated proof",
+      "refused": true,
+      "reason": "Error(Merkle proof validation failed)",
+      "txHash": null
+    },
+    {
+      "attack": "challenge with a real proof, wrong chainKey",
+      "refused": true,
+      "reason": "WrongChain(1, 3)",
+      "txHash": null
+    },
+    {
+      "attack": "challenge with a valid proof outside the window",
+      "refused": true,
+      "reason": "BlockOutsideWindow(11671129, 11671130, 11671230)",
+      "txHash": null
+    },
+    {
+      "attack": "challenge with proof of a reverted source tx",
+      "refused": true,
+      "reason": "TransactionFailed(0)",
+      "txHash": null
+    },
+    {
+      "attack": "replay the counterexample on a breached position",
+      "refused": true,
+      "reason": "NotLive()",
+      "txHash": "0x65a8bc7f34a90538964342617ca75cc097f7d1bc3cbdd1c6e650898cb9772be7"
+    },
+    {
+      "attack": "draw against a breached position",
+      "refused": true,
+      "reason": "CoverageNotValid(STATUS_BREACHED)",
+      "txHash": "0xb62ce5ed691e7521c2c05430c1fc8c5069d42ff649dc0db7680056df8969fbfa"
+    },
+    {
+      "attack": "settle a breached position",
+      "refused": true,
+      "reason": "OutstandingExposure(10000000000)",
+      "txHash": null
+    },
+    {
+      "attack": "settle with exposure outstanding",
+      "refused": true,
+      "reason": "OutstandingExposure(4000000000)",
+      "txHash": null
+    },
+    {
+      "attack": "re-run the one-time module wiring",
+      "refused": true,
+      "reason": "ModulesAlreadyWired()",
+      "txHash": null
+    }
+  ]
+}

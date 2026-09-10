@@ -103,7 +103,15 @@
         "calldataBytes": 3856
       },
       "honestNote": "This is a 30% saving, not an order-of-magnitude one: the per-claim merkle paths and proven bytes dominate calldata. The saving grows with the number of claims sharing a window.",
-      "raw": "worker/evidence/continuity-benchmark.json"
+      "raw": "worker/evidence/continuity-benchmark.json",
+      "secondRun10Claims": {
+        "claims": 10,
+        "naiveGas": 819007,
+        "batchedGas": 634737,
+        "savingPercent": 22.5,
+        "calldataSavedBytes": 3556,
+        "note": "The saving varies with how many continuity roots the proofs need: 30.1% at 5 claims, 22.5% at 10."
+      }
     },
     "deployScriptDryRun": {
       "tool": "forge script script/Deploy.s.sol:Deploy",
@@ -137,7 +145,12 @@
           "avg": 2230
         }
       },
-      "note": "All values produced by the committed test suite; no estimates."
+      "note": "All values produced by the committed test suite; no estimates.",
+      "failurePath": {
+        "drawAgainstBreachedPosition": 195748,
+        "replayedCounterexample": 266336,
+        "note": "Real failed transactions on CC3 testnet, not estimates."
+      }
     },
     "liveDemo": {
       "tool": "node worker/scripts/demo.mjs",
@@ -164,11 +177,55 @@
         "bondReleasedToUnderwriter": "12000 cxTUSD"
       },
       "raw": "worker/evidence/demo-run.json"
+    },
+    "attackMatrix": {
+      "tool": "node worker/scripts/attack-matrix.mjs --onchain",
+      "total": 15,
+      "refused": 15,
+      "leaked": 0,
+      "target": "the live CC3 testnet deployment",
+      "onChainRefusals": {
+        "drawAgainstBreachedPosition": "0xb62ce5ed691e7521c2c05430c1fc8c5069d42ff649dc0db7680056df8969fbfa",
+        "replayedCounterexample": "0x65a8bc7f34a90538964342617ca75cc097f7d1bc3cbdd1c6e650898cb9772be7",
+        "note": "Both have status failed on the explorer and were broadcast with an explicit gas limit, because a refusal that only exists as a simulated call is weaker evidence."
+      },
+      "raw": "worker/evidence/attack-matrix.json"
+    },
+    "timing": {
+      "tool": "block timestamps for every transaction in the demo run",
+      "transactions": 16,
+      "secondsPerBlock": 15,
+      "endToEndSeconds": 225,
+      "totalGas": 2623406,
+      "keyLegs": {
+        "draw": 288092,
+        "challenge": 396004,
+        "purchase": 371652,
+        "settlement": 181412
+      },
+      "raw": "worker/evidence/timing.json"
+    },
+    "explorerVerification": {
+      "contractsVerified": 9,
+      "contractsDeployed": 9,
+      "explorer": "https://creditcoin-testnet.blockscout.com",
+      "note": "is_verified: true for all nine, checked through the explorer API."
     }
   },
   "notBuilt": [
-    "frontend (deliberately out of scope for this repository)",
-    "demo video",
-    "pitch deck"
-  ]
+    "frontend (out of scope by instruction)",
+    "demo video (script written, docs/DEMO.md)",
+    "deck PDF (content written, docs/SUBMISSION.md)",
+    "team details for the form"
+  ],
+  "docs": {
+    "judgePacket": "docs/JUDGE-PACKET.md",
+    "demoScript": "docs/DEMO.md",
+    "submissionText": "docs/SUBMISSION.md",
+    "attestcoin": "docs/ATTESTCOIN.md",
+    "economics": "docs/ECONOMICS.md",
+    "comparison": "docs/COMPARISON.md",
+    "integration": "docs/INTEGRATION.md",
+    "gas": "docs/GAS.md"
+  }
 }

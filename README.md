@@ -114,7 +114,7 @@ Full detail, including the exact payload format and the live evidence: **`docs/A
 
 ### Deployed and verified on Creditcoin CC3 testnet
 
-Chain `102031`, deployed 2026-09-10. Explorer links are in `evidence.json`.
+Chain `102031`, deployed 2026-09-10, **all nine contracts verified on the explorer** (`is_verified: true`). Addresses and every transaction hash are in `evidence.json`.
 
 | Contract | Address |
 |---|---|
@@ -163,6 +163,38 @@ Four independent wallets, no hand-written values, every step a real transaction:
   bond released                        free balance +12000 cxTUSD
   second position status               SETTLED
 ```
+
+### The mechanism refusing, on the live deployment
+
+```
+$ node worker/scripts/attack-matrix.mjs --onchain
+REJECTED  draw against an unknown position                UnknownCoverage(999999)
+REJECTED  draw as a different counterparty                NotTheCounterparty()
+REJECTED  draw above the position maximum                 CoverageNotValid(CAPACITY_EXCEEDED)
+REJECTED  underwriter withdraws the locked bond           InsufficientFreeBalance(2904000000000, 2904000000001)
+REJECTED  create a position with bond < exposure          BondBelowExposure(1000000, 10000000000)
+REJECTED  stranger calls wireModules                      OwnableUnauthorizedAccount(0xc044…1130)
+REJECTED  challenge with a fabricated proof               Merkle proof validation failed
+REJECTED  challenge with a real proof, wrong chainKey     WrongChain(1, 3)
+REJECTED  challenge with a valid proof outside the window BlockOutsideWindow(11671129, 11671130, 11671130)
+REJECTED  challenge with proof of a reverted source tx    TransactionFailed(0)
+REJECTED  replay the counterexample on a breached position NotLive()          tx 0x65a8bc7f…2be7
+REJECTED  draw against a breached position                CoverageNotValid(STATUS_BREACHED)  tx 0xb62ce5ed…fbfa
+REJECTED  settle a breached position                      OutstandingExposure(10000000000)
+REJECTED  settle with exposure outstanding                OutstandingExposure(4000000000)
+REJECTED  re-run the one-time module wiring               ModulesAlreadyWired()
+
+15/15 attacks refused
+```
+
+Two refusals are **real failed transactions on chain** (status 0, 195,748 and 266,336 gas), so a reviewer
+can open them rather than trust a simulation. That draw paid 195,748 gas to be told no — a refusal is not
+free, but it cannot change state.
+
+### Timing, from block timestamps
+
+16 transactions, 225 seconds end to end at 15s per Creditcoin block: purchase 371,652 gas, draw 288,092,
+challenge 396,004, settlement 181,412. Raw log: `worker/evidence/timing.json`.
 
 The counterexample is a **real Sepolia USDC transfer** (`0x19c528d3…88a1`, block 11,671,180) whose
 recipient was declared prohibited in the coverage terms. Nothing was synthesised: the proof is genuine,
@@ -279,7 +311,8 @@ contracts/                      Foundry project (Solidity 0.8.30, via_ir)
   test/                         48 tests: lifecycle, attack matrix, state machine, invariants, predicates
   script/                       Deploy.s.sol, VerifyDeployment.s.sol
 worker/                         proof pipeline, challenger watcher, live verification, benchmark
-docs/                           ATTESTCOIN.md, ECONOMICS.md, COMPARISON.md, INTEGRATION.md, GAS.md
+docs/                           ATTESTCOIN.md, ECONOMICS.md, COMPARISON.md, INTEGRATION.md,
+                                GAS.md, DEMO.md, JUDGE-PACKET.md, SUBMISSION.md, ROADMAP.md
 INVARIANTS.md  SECURITY.md      the numbered invariants and the threat model
 ```
 
@@ -302,6 +335,8 @@ node scripts/continuity-benchmark.mjs 5
 node scripts/verify-deployment.mjs      # 19/19 on the deployed addresses
 node scripts/find-source-evidence.mjs   # locate a real source-chain transaction to prove
 node scripts/demo.mjs                   # the whole mechanism, four wallets, real proofs
+node scripts/attack-matrix.mjs --onchain # every attack refused, two recorded on chain
+bash ../contracts/script/verify-on-explorer.sh   # submit all 9 for explorer verification
 
 # 4. deploy your own instance to CC3 testnet (funded key required)
 cd ../contracts
@@ -319,9 +354,14 @@ Stated here rather than discovered by a reviewer:
 - **A predicate sees one proven transaction.** It cannot read source-chain state, cannot sum history and cannot compare two transactions. Every invariant is therefore a statement about one decoded receipt. See `SECURITY.md` §"What a predicate cannot see".
 - **Not deployed.** No addresses, no transactions, no demo video yet.
 - **Coverage windows are relative to the attestation frontier.** A position bought over a window the frontier has already passed is expired on arrival; the grace band is configurable (`defaultGraceBlocks`, currently 10,000 source blocks).
-- **Compression is 30%, not orders of magnitude** (measured above).
+- **Compression is 22–30%, not orders of magnitude** and not a fixed multiplier: 30.1% measured over 5
+  claims, 22.5% over 10, depending on how many continuity roots the proofs need (both runs in
+  `docs/GAS.md`).
 - **The pricing curve is deterministic and documented, not a market.** Underwriters set a per-borrower multiplier and the curve prices window length and depth. Competing underwriters on price is the obvious next step and is deliberately not claimed as done.
-- **Frontend is out of scope** for this repository by choice; the contract surface and `previewDraw` / `previewChallenge` views expose everything a UI needs.
+- **Frontend is out of scope** for this repository by choice; the contract surface and `previewDraw` /
+  `previewChallenge` views expose everything a UI needs, and `docs/ROADMAP.md` records the six-screen plan.
+- **The market layer is a pricing curve, not an order book** — underwriters cannot yet compete on price.
+  Named as roadmap rather than implied by the name `Coverage Exchange` (`docs/ROADMAP.md`).
 
 ## 12. Licence
 

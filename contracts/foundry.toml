@@ -20,8 +20,10 @@ bracket_spacing = false
 cc3_testnet = "${CC3_TESTNET_RPC_URL}"
 sepolia = "${SEPOLIA_RPC_URL}"
 
+# Blockscout on CC3 testnet. The verifier URL is required: Foundry has no built-in mapping for
+# chain 102031, and Blockscout accepts verification without an API key.
 [etherscan]
-cc3_testnet = { key = "${CC3_EXPLORER_API_KEY}", chain = 102031 }
+cc3_testnet = { key = "${CC3_EXPLORER_API_KEY}", chain = 102031, url = "https://creditcoin-testnet.blockscout.com/api" }
 
 # Profile for forking Creditcoin. Two things learned the hard way:
 #  1. CC3 blocks do not populate the post-merge `prevrandao` header field, so a default (Cancun) fork
