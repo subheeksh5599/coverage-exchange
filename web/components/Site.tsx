@@ -158,7 +158,13 @@ export function Shot({
           width={w}
           height={h}
           style={{ width: "100%", height: "auto", aspectRatio: `${w} / ${h}` }}
-          loading={priority ? "eager" : "lazy"}
+          // Always eager. These are the page's primary content and there are only three of
+          // them, and native lazy loading proved unreliable: in a driven browser the
+          // below-fold shots were never requested at all, even once scrolled into view, so
+          // the page shipped empty frames. For an image that must appear, `eager` is correct
+          // and the few hundred KB is the right trade.
+          loading="eager"
+          fetchPriority={priority ? "high" : "auto"}
           decoding="async"
         />
       </div>
