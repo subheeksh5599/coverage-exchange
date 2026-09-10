@@ -1,0 +1,114 @@
+{
+  "_comment": "Machine-readable evidence manifest. This file is the single source of truth a README, a deck or a demo page should read from. Values below are either MEASURED (a command produced them, and the command is named) or PENDING (not produced yet, and therefore null). Nothing here is estimated.",
+  "project": "Coverage Exchange",
+  "event": "BUIDL CTC 2026 Fall - BUIDL For The Real World (Creditcoin & Credit Labs)",
+  "generatedAt": "2026-09-10",
+  "networks": {
+    "settlement": {
+      "name": "Creditcoin CC3 testnet",
+      "chainId": 102031,
+      "rpc": "https://rpc.cc3-testnet.creditcoin.network"
+    },
+    "source": {
+      "name": "Ethereum Sepolia",
+      "chainKey": 1,
+      "rpc": "https://ethereum-sepolia-rpc.publicnode.com"
+    }
+  },
+  "attestcoin": {
+    "blockProverPrecompile": "0x0000000000000000000000000000000000000FD2",
+    "chainInfoPrecompile": "0x0000000000000000000000000000000000000fD3",
+    "proofBuilder": "https://prover.cc3-testnet.creditcoin.network",
+    "sdk": "@gluwa/usc-sdk 0.18.0",
+    "ascContracts": "@gluwa/asc-contracts 0.2.1"
+  },
+  "contracts": {
+    "_status": "PENDING — not deployed. Addresses are deliberately null rather than omitted so that a reviewer can see the deployment has not happened.",
+    "demoToken": null,
+    "attestcoinAdapter": null,
+    "coverageEngine": null,
+    "coverageMarket": null,
+    "challengeManager": null,
+    "lendingAdapter": null,
+    "prohibitedRecipient": null,
+    "amountAboveLimit": null,
+    "amountBelowFloor": null
+  },
+  "transactions": {
+    "_status": "PENDING — requires a deployment. The demo script names the exact transactions that will be listed here.",
+    "coverageCreation": null,
+    "purchase": null,
+    "draw": null,
+    "counterexample": null,
+    "bondSlash": null,
+    "failedChallenge": null,
+    "settlement": null
+  },
+  "measured": {
+    "contractTests": {
+      "tool": "forge test",
+      "passed": 48,
+      "failed": 0,
+      "skipped": 0,
+      "what": "lifecycle, attack matrix A-H, lookalike emitter, reverted source tx, replay scoping, challenger race, expiry, fail-closed, fuzzed invariants I-01..I-05"
+    },
+    "liveAttestcoinVerification": {
+      "tool": "node worker/scripts/live-precompile-check.mjs",
+      "checksPassed": 7,
+      "checksTotal": 7,
+      "kind": "keyless eth_call against the real CC3 testnet precompiles",
+      "frontier": {
+        "chainKey": 1,
+        "height": 11673770,
+        "hash": "0xe44a92d95d74f2baa8f400d217bcb0d6578c9db25025f7a29cbadf2251b889cd"
+      },
+      "proof": {
+        "sourceTx": "0x167938545c8d4fffc3701b51fe655e003157d6a0b1b6e1b2426201331aa3f7cc",
+        "sourceBlock": 11653808,
+        "txIndex": 0,
+        "merkleSiblings": 7,
+        "continuityRoots": 93
+      },
+      "result": {
+        "realProofAcceptedByPrecompile": true,
+        "tamperedPayloadRejected": true,
+        "tamperRejectionReason": "Merkle proof validation failed"
+      },
+      "raw": "worker/evidence/live-precompile.json"
+    },
+    "continuityCompression": {
+      "tool": "node worker/scripts/continuity-benchmark.mjs 5",
+      "claims": 5,
+      "naive": {
+        "calls": 5,
+        "gas": 419994,
+        "calldataBytes": 22676,
+        "continuityRootsCarried": 275
+      },
+      "batch": {
+        "calls": 1,
+        "gas": 293781,
+        "calldataBytes": 18820,
+        "sharedContinuityProof": 1
+      },
+      "saving": {
+        "gas": 126213,
+        "gasPercent": 30.1,
+        "calldataBytes": 3856
+      },
+      "honestNote": "This is a 30% saving, not an order-of-magnitude one: the per-claim merkle paths and proven bytes dominate calldata. The saving grows with the number of claims sharing a window.",
+      "raw": "worker/evidence/continuity-benchmark.json"
+    },
+    "deployScriptDryRun": {
+      "tool": "forge script script/Deploy.s.sol:Deploy",
+      "gasUsed": 6084522,
+      "note": "dry run against a local EVM; no funded key was used"
+    }
+  },
+  "notBuilt": [
+    "frontend (deliberately out of scope for this repository)",
+    "demo video",
+    "pitch deck",
+    "CC3 testnet deployment"
+  ]
+}
