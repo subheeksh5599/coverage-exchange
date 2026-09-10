@@ -62,6 +62,13 @@ frontier in `worker/scripts/verify-deployment.mjs` (19/19).
 
 https://github.com/subheeksh5599/coverage-exchange
 
+## Live interface
+
+The repository ships the UI at `web/` (Next.js, two routes: `/` and `/dashboard`). It reads Creditcoin
+CC3 testnet directly over public RPC — no backend, no API keys — and every fixed number it displays is
+generated from `evidence.json`, with CI failing the build if the two disagree. It is read-only by
+design: the transactions were sent by the scripts in `worker/`, which is where the wallets are.
+
 ## Deck / whitepaper
 
 > TODO — needs a PDF. The content already exists in `README.md`, `INVARIANTS.md`, `SECURITY.md` and

@@ -40,26 +40,39 @@ description says "pricing curve" and `docs/ECONOMICS.md` says so in its own sect
 | **Protocol fee on seized bonds** | the whole bond goes to the challenger. A cut would reduce the only incentive standing between a false claim and a paid-out loan | the protocol has no revenue — correct at this stage |
 | **Coverage portfolios** (a lender requiring several positions at once) | composes trivially from what exists — a lender can call `isValid` on N positions — so there is nothing to build, only a convention to document | a lender writes N checks instead of one |
 
-## Frontend
+## Frontend — built, read-only
 
-Out of scope for this repository by instruction, and worth stating what a judge therefore does not see:
-a UI. The contract surface exposes everything one needs — `getCoverage`, `isValid`, `previewDraw`,
-`previewChallenge`, `exposureOf`, `windowClosed`, `freeBalance` — and the state changes are public on the
-explorer, which is what the demo script (`docs/DEMO.md`) is built around.
+`web/` ships two routes and is live-reading the chain:
 
-If a frontend is added, the flow it should implement, in six screens:
+- **`/`** — the mechanism, the invariant, and the evidence, with the Sepolia frontier ticking in the
+  header from `tryFrontier` rather than from a constant.
+- **`/dashboard`** — every coverage position on the deployed engine with its status, bond, drawn amount
+  and validity reason from `isValid`, plus the 15-row attack matrix with each refusal reason.
 
-1. **Market** — the capacity available to underwrite or buy, priced by the curve.
+Two properties worth stating plainly, because they are what merging the UI into this repo bought:
+
+1. **The UI holds no on-chain facts of its own.** `web/lib/evidence.generated.ts` is generated from
+   `evidence.json` and `worker/evidence/*.json` before every dev and build, and CI fails if the committed
+   copy differs (`npm run check:evidence`). A page cannot claim a transaction, an address or a gas number
+   the scripts did not record — the failure mode this whole project is about.
+2. **It is read-only.** It renders state; it does not send transactions. The wallets live in `worker/`,
+   and buying, drawing and challenging happen there. A judge can watch the mechanism from the browser and
+   verify every number, but cannot drive it — which is honest about what is built rather than pretending
+   at a product surface.
+
+**Still to build, if the UI becomes transactional** — this is the part that remains a plan:
+
+1. **Wallet connection** — none today; the app is keyless and reads over public RPC.
 2. **Buy coverage** — exposure, window, required depth, premium, bond, counterparty and the invariant,
-   then purchase.
-3. **Draw** — the lender's view: `previewDraw` returns VALID or a named reason
-   (FRONTIER_NOT_READY vs STATUS_BREACHED are different situations and deserve different copy).
-4. **Attack** — the challenger's view: paste a source transaction, see `previewChallenge` say whether it
-   breaches, then send it.
-5. **Breach** — status BREACHED, the bond transfer, and the frozen draw, in one screen.
-6. **Settlement** — a clean window, the frontier past `endBlock + depth`, bond released.
+   then `purchase`. Needs a signer.
+3. **Draw** — the lender's action. `previewDraw` already returns VALID or a named reason
+   (FRONTIER_NOT_READY and STATUS_BREACHED are different situations and deserve different copy); the
+   dashboard renders the reason, it just cannot send the draw.
+4. **Attack** — the challenger's action: paste a source transaction, `previewChallenge` says whether it
+   breaches, then send. Today this is `worker/scripts/attack-matrix.mjs`.
 
-Landing copy is already written and unused: **"Buy guarantees. Don't trust promises."**
+The ordering matters: a transactional UI needs a proof builder call in the browser, which is a real piece
+of work rather than a form. Rendering the mechanism honestly came first.
 
 ## What is missing before submission (not code)
 

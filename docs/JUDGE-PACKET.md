@@ -111,6 +111,24 @@ Yes, on testnet, and independently checkable:
 
 Addresses, and every transaction hash, in `evidence.json`.
 
+### Can I see it without a terminal?
+
+Yes. `cd web && npm install && npm run dev` serves two routes:
+
+| Route | What it shows |
+|---|---|
+| `/` | the mechanism and the invariant, with Ethereum's attested frontier read live in the header |
+| `/dashboard` | every position on the deployed engine — status, bond, drawn, and the validity reason from `isValid` — plus the 15-row attack matrix |
+
+Two things about this UI are deliberate and worth a reviewer's attention:
+
+- **It holds no on-chain facts of its own.** `web/lib/evidence.generated.ts` is generated from
+  `evidence.json` and `worker/evidence/*.json` before every build, and CI fails if the committed copy
+  differs (`npm run check:evidence`). The interface physically cannot claim a transaction hash, address
+  or gas number that the scripts did not record. Given that this project exists because software says
+  "success" without proving it, a UI free to invent its own numbers would have been the wrong artifact.
+- **It is read-only.** It renders state; it never sends a transaction. The wallets live in `worker/`.
+
 ## 7. Is it reusable?
 
 `docs/INTEGRATION.md`. The whole integration is one call in the transaction that moves funds:

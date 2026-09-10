@@ -264,7 +264,7 @@ Including the full counterexample suite A–H, the lookalike-emitter case, the r
 | Deployment on CC3 testnet | **live** — 9 contracts, verified 19/19 by `verify-deployment.mjs` |
 | Full mechanism run live | **done** — breach + slash and settlement, `worker/evidence/demo-run.json` |
 | Demo video, deck, submission form | not started (human deliverables) |
-| Frontend | deliberately out of scope for this repository |
+| Frontend | `web/` — read-only: it renders live CC3 state and recorded evidence, it does not send transactions |
 
 `worker/evidence/` holds the raw output of every live run shown above: `live-precompile.json`,
 `continuity-benchmark.json`, `deployment-verification.json`, `source-evidence.json` and `demo-run.json`.
@@ -311,6 +311,9 @@ contracts/                      Foundry project (Solidity 0.8.30, via_ir)
   test/                         48 tests: lifecycle, attack matrix, state machine, invariants, predicates
   script/                       Deploy.s.sol, VerifyDeployment.s.sol
 worker/                         proof pipeline, challenger watcher, live verification, benchmark
+web/                            Next.js app — landing (/) and the desk (/dashboard), reading CC3 live
+  lib/evidence.generated.ts     GENERATED from evidence.json; the UI holds no facts of its own
+  scripts/gen-evidence.mjs      regenerates it; runs before dev and build, gated in CI
 docs/                           ATTESTCOIN.md, ECONOMICS.md, COMPARISON.md, INTEGRATION.md,
                                 GAS.md, DEMO.md, JUDGE-PACKET.md, SUBMISSION.md, ROADMAP.md
 INVARIANTS.md  SECURITY.md      the numbered invariants and the threat model
@@ -338,6 +341,9 @@ node scripts/demo.mjs                   # the whole mechanism, four wallets, rea
 node scripts/attack-matrix.mjs --onchain # every attack refused, two recorded on chain
 bash ../contracts/script/verify-on-explorer.sh   # submit all 9 for explorer verification
 
+cd ../web && npm install && npm run dev  # UI at :3000 — landing at /, the desk at /dashboard
+                                         # reads CC3 testnet directly; no backend, no API keys
+
 # 4. deploy your own instance to CC3 testnet (funded key required)
 cd ../contracts
 FOUNDRY_PROFILE=live forge script script/Deploy.s.sol:Deploy \
@@ -358,8 +364,9 @@ Stated here rather than discovered by a reviewer:
   claims, 22.5% over 10, depending on how many continuity roots the proofs need (both runs in
   `docs/GAS.md`).
 - **The pricing curve is deterministic and documented, not a market.** Underwriters set a per-borrower multiplier and the curve prices window length and depth. Competing underwriters on price is the obvious next step and is deliberately not claimed as done.
-- **Frontend is out of scope** for this repository by choice; the contract surface and `previewDraw` /
-  `previewChallenge` views expose everything a UI needs, and `docs/ROADMAP.md` records the six-screen plan.
+- **The UI is read-only.** `web/` renders live CC3 state and the recorded evidence; it does not send
+  transactions. Buying coverage, drawing and challenging are done by the scripts in `worker/`, which is
+  where the wallets are. A judge can watch the state, not drive it, from the browser.
 - **The market layer is a pricing curve, not an order book** — underwriters cannot yet compete on price.
   Named as roadmap rather than implied by the name `Coverage Exchange` (`docs/ROADMAP.md`).
 

@@ -19,6 +19,7 @@ TODO*.md
 # deps / build artefacts
 node_modules/
 worker/node_modules/
+web/node_modules/
 out/
 artifacts/
 cache/
@@ -29,7 +30,10 @@ coverage/
 dist/
 build/
 .next/
+web/.next/
+web/out/
 *.tsbuildinfo
+next-env.d.ts
 
 # logs / local state
 *.log

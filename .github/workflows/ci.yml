@@ -49,6 +49,28 @@ jobs:
       - name: Typecheck
         run: npx tsc --noEmit --allowJs --checkJs --target es2022 --module nodenext --moduleResolution nodenext --skipLibCheck src/*.mjs scripts/*.mjs || true
 
+  web:
+    name: web (evidence freshness + typecheck + build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm install --no-audit --no-fund
+      - name: The UI must not disagree with evidence.json
+        # Regenerates lib/evidence.generated.ts from the manifest and fails if the committed copy
+        # differs. This is the whole point of merging the frontend into this repo: the interface
+        # cannot claim a number the scripts did not record.
+        run: npm run check:evidence
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Build
+        run: npm run build
+
   secrets:
     name: no secrets committed
     runs-on: ubuntu-latest

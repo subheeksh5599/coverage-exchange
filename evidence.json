@@ -213,7 +213,8 @@
     }
   },
   "notBuilt": [
-    "frontend (out of scope by instruction)",
+    "transaction-sending UI (web/ is read-only by design; the wallets live in worker/)",
+    "competing underwriters / order book (docs/ROADMAP.md)",
     "demo video (script written, docs/DEMO.md)",
     "deck PDF (content written, docs/SUBMISSION.md)",
     "team details for the form"
@@ -226,6 +227,17 @@
     "economics": "docs/ECONOMICS.md",
     "comparison": "docs/COMPARISON.md",
     "integration": "docs/INTEGRATION.md",
-    "gas": "docs/GAS.md"
+    "gas": "docs/GAS.md",
+    "roadmap": "docs/ROADMAP.md"
+  },
+  "web": {
+    "framework": "Next.js 15 (app router), static export of two routes",
+    "routes": {
+      "/": "landing",
+      "/dashboard": "the desk \u2014 live positions, frontier, attack matrix"
+    },
+    "dataSource": "reads Creditcoin CC3 testnet directly over public RPC with viem; no backend, no API keys",
+    "evidenceBinding": "web/lib/evidence.generated.ts is GENERATED from this manifest by web/scripts/gen-evidence.mjs and regenerated before every dev/build. CI (`npm run check:evidence`) fails if the committed copy differs, so the interface cannot claim a number the scripts did not record.",
+    "verified": "both routes 200 with live data: frontier 11,674,760 matched an independent RPC read at the same moment; 11 positions with real ACTIVE/BREACHED/SETTLED statuses; no localhost in the bundle."
   }
 }
