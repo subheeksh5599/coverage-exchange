@@ -68,104 +68,10 @@ export const REASON_NAMES = [
   "BOND_BELOW_EXPOSURE",
 ] as const;
 
-// Minimal read ABIs — mirrors contracts/src (CoverageEngine, AttestcoinAdapter).
-export const ENGINE_ABI = [
-  {
-    type: "function",
-    name: "nextCoverageId",
-    stateMutability: "view",
-    inputs: [],
-    outputs: [{ type: "uint256" }],
-  },
-  {
-    type: "function",
-    name: "coverageRatioBps",
-    stateMutability: "view",
-    inputs: [],
-    outputs: [{ type: "uint16" }],
-  },
-  {
-    type: "function",
-    name: "defaultGraceBlocks",
-    stateMutability: "view",
-    inputs: [],
-    outputs: [{ type: "uint64" }],
-  },
-  {
-    type: "function",
-    name: "isValid",
-    stateMutability: "view",
-    inputs: [{ name: "coverageId", type: "uint256" }],
-    outputs: [
-      { name: "ok", type: "bool" },
-      { name: "reason", type: "uint8" },
-    ],
-  },
-  {
-    type: "function",
-    name: "getCoverage",
-    stateMutability: "view",
-    inputs: [{ name: "coverageId", type: "uint256" }],
-    outputs: [
-      {
-        type: "tuple",
-        components: [
-          { name: "id", type: "uint256" },
-          { name: "borrower", type: "address" },
-          { name: "underwriter", type: "address" },
-          { name: "chainKey", type: "uint64" },
-          { name: "startBlock", type: "uint64" },
-          { name: "endBlock", type: "uint64" },
-          { name: "requiredDepth", type: "uint64" },
-          { name: "liveUntilHeight", type: "uint64" },
-          { name: "maxExposure", type: "uint256" },
-          { name: "capacity", type: "uint256" },
-          { name: "drawn", type: "uint256" },
-          { name: "bond", type: "uint256" },
-          { name: "premium", type: "uint256" },
-          { name: "predicate", type: "address" },
-          { name: "predicateParams", type: "bytes32" },
-          { name: "sourceContract", type: "address" },
-          { name: "eventSignature", type: "bytes32" },
-          { name: "status", type: "uint8" },
-          { name: "createdAtBlock", type: "uint64" },
-          { name: "challengeKey", type: "bytes32" },
-        ],
-      },
-    ],
-  },
-] as const;
-
-export const ADAPTER_ABI = [
-  {
-    type: "function",
-    name: "tryFrontier",
-    stateMutability: "view",
-    inputs: [{ name: "chainKey", type: "uint64" }],
-    outputs: [
-      { name: "available", type: "bool" },
-      { name: "height", type: "uint64" },
-      { name: "hash", type: "bytes32" },
-    ],
-  },
-] as const;
-
-export const ERC20_ABI = [
-  {
-    type: "function",
-    name: "balanceOf",
-    stateMutability: "view",
-    inputs: [{ name: "account", type: "address" }],
-    outputs: [{ type: "uint256" }],
-  },
-  {
-    type: "function",
-    name: "totalSupply",
-    stateMutability: "view",
-    inputs: [],
-    outputs: [{ type: "uint256" }],
-  },
-] as const;
+// The full ABIs live in lib/abi.ts. They are re-exported here so pages have one import
+// site, and so the write surface (purchase, draw, challenge, deposit) cannot drift from the
+// read surface — the app signs the same definitions it reads with.
+export { ERC20_ABI, ENGINE_ABI, ADAPTER_ABI, LENDING_ABI, MARKET_ABI, CHALLENGE_ABI } from "./abi";
 
 // ---------------------------------------------------------------------------
 // Measured evidence, re-exported from the generated file. Every value was produced by a command

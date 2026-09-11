@@ -1,332 +1,290 @@
+"use client";
+
+// Dashboard. The first thing the app does is ask for a wallet; everything after that is the
+// user's real position in the protocol. Nothing on this page is decorative: each number is a
+// contract read and each button signs a transaction.
+
 import Link from "next/link";
-import { Nav, Footer, Section, Eyebrow, Reveal, Shot, StatStrip, Arrow } from "@/components/Site";
-import { FlowDiagram, WindowDiagram, TrustDiagram } from "@/components/Diagrams";
-import { ADDR, EXPLORER, DEMO_TXS, MEASURED, REPO, CHAIN_LABEL, short } from "@/lib/chain";
+import { useMemo } from "react";
+import { useAccountState, useFrontier, usePositions, useProtocolTotals, money } from "@/lib/protocol";
+import { useWallet } from "@/lib/wallet";
+import { useActions } from "@/lib/actions";
+import { Card, Stat, Notice, TxButton, Empty, Loading, ReadError, Pill } from "@/components/ui";
+import { PositionsTable } from "@/components/PositionsTable";
 
-export default function Home() {
+function ConnectGate() {
+  const { connect, connecting, error, hasProvider } = useWallet();
   return (
-    <>
-      <Nav />
+    <Card title="Connect a wallet" hint="nothing on this site works without one">
+      <div className="grid" style={{ gap: 14 }}>
+        <p style={{ margin: 0, color: "var(--ink-2)", fontSize: "0.8125rem", lineHeight: 1.6 }}>
+          Coverage Exchange is a financial application on Creditcoin CC3. Buy coverage with bonded capital
+          behind it, draw credit against that coverage, provide the capital on the other side, or challenge a
+          claim you can disprove. Every action is a transaction; there is no demo mode.
+        </p>
+        {!hasProvider ? (
+          <Notice tone="warn">
+            <div>
+              <strong>No browser wallet detected.</strong> Install MetaMask (or any EIP-1193 wallet), then reload
+              this page. The protocol reads below still work without a wallet.
+            </div>
+          </Notice>
+        ) : null}
+        {error ? <Notice tone="bad">{error}</Notice> : null}
+        <div className="actions">
+          <button className="btn btn-primary" onClick={connect} disabled={connecting || !hasProvider} type="button">
+            {connecting ? "Connecting…" : "Connect wallet"}
+          </button>
+          <Link className="btn" href="/docs">What this does</Link>
+        </div>
+      </div>
+    </Card>
+  );
+}
 
-      <main id="main">
-        {/* ------------------------------------------------------------ hero */}
-        <section className="hero">
-          <div className="wrap">
-            <Reveal>
-              <span className="chip">
-                <span className="dot dot-live" />
-                Live on {CHAIN_LABEL} · {MEASURED.contractsVerified} contracts source-verified
-              </span>
-            </Reveal>
+export default function Dashboard() {
+  const { address } = useWallet();
+  const acct = useAccountState(address);
+  const positions = usePositions();
+  const totals = useProtocolTotals();
+  const frontier = useFrontier();
+  const actions = useActions();
 
-            <Reveal delay={60}>
-              <h1 className="hero-h1">
-                Credit decisions should not
-                <br />
-                depend on trust.
-              </h1>
-            </Reveal>
+  const mine = useMemo(
+    () => (positions.data ?? []).filter((c) => address && c.borrower.toLowerCase() === address.toLowerCase()),
+    [positions.data, address]
+  );
+  const underwriting = useMemo(
+    () => (positions.data ?? []).filter((c) => address && c.underwriter.toLowerCase() === address.toLowerCase()),
+    [positions.data, address]
+  );
 
-            <Reveal delay={120}>
-              <p className="hero-p">
-                Coverage Exchange turns a claim about on-chain behaviour into a bonded, falsifiable
-                position. An underwriter puts capital behind &ldquo;this wallet will not do X in this
-                window&rdquo;. Anyone who finds a single counterexample proves it against the Attestcoin
-                Protocol and takes the bond. Lenders read one function before releasing credit.
-              </p>
-            </Reveal>
+  const fh = frontier.data?.available ? frontier.data.height : null;
+  const activeCoverage = mine.filter((c) => c.status === 0 && c.valid).length;
+  const totalExposure = mine.reduce((a, c) => a + c.maxExposure, 0n);
+  const drawnTotal = mine.reduce((a, c) => a + c.drawn, 0n);
+  const bondAtRisk = underwriting.reduce((a, c) => a + (c.status === 0 ? c.bond : 0n), 0n);
 
-            <Reveal delay={180}>
-              <div className="hero-cta">
-                <Link className="btn" href="/dashboard">
-                  Open the live console <Arrow />
-                </Link>
-                <a className="btn btn-ghost" href={REPO} target="_blank" rel="noreferrer">
-                  Read the contracts
-                </a>
-              </div>
-            </Reveal>
-
-            <Reveal delay={240}>
-              <StatStrip />
-            </Reveal>
+  return (
+    <div className="grid" style={{ gap: 16 }}>
+      <div className="page-head">
+        <div>
+          <h1>Dashboard</h1>
+          <p>
+            Your live position in the protocol. Balances, capacity, coverage and bonds are read from the
+            deployed contracts on every refresh — if a read fails, this page says so instead of showing a stale
+            number.
+          </p>
+        </div>
+        {address ? (
+          <div className="actions">
+            <Link className="btn btn-primary" href="/market">Buy coverage</Link>
+            <Link className="btn" href="/underwrite">Provide coverage</Link>
           </div>
-        </section>
+        ) : null}
+      </div>
 
-        {/* --------------------------------------------------- product shot */}
-        <section className="shot-hero">
-          <div className="wrap">
-            <Reveal>
-              <Shot
-                src="/product/console-overview.png"
-                w={2880}
-                h={2574}
-                alt="Coverage Exchange console: bond locked, covered exposure, drawn credit, status mix and covered windows read live from Creditcoin CC3"
-                caption="The console, reading the deployed engine directly. No server, no database, no fixtures — if the RPC is down it says so rather than showing a stale number."
-                priority
+      {!address ? (
+        <div className="grid split">
+          <ConnectGate />
+          <div className="grid" style={{ gap: 16 }}>
+            <Card title="Protocol right now" hint={totals.error ? "read failed" : "live"}>
+              {totals.error ? (
+                <ReadError error={totals.error} what="protocol totals" />
+              ) : totals.loading || !totals.data ? (
+                <Loading />
+              ) : (
+                <div className="grid cols-2" style={{ gap: 10 }}>
+                  <div>
+                    <div className="stat-k">Positions</div>
+                    <div className="stat-v">{totals.data.positionCount}</div>
+                  </div>
+                  <div>
+                    <div className="stat-k">Drawable liquidity</div>
+                    <div className="stat-v">{money(totals.data.drawableLiquidity)}</div>
+                  </div>
+                  <div>
+                    <div className="stat-k">Bonded capital held</div>
+                    <div className="stat-v">{money(totals.data.engineBalance)}</div>
+                  </div>
+                  <div>
+                    <div className="stat-k">Bond / exposure floor</div>
+                    <div className="stat-v">{totals.data.ratioBps / 100}%</div>
+                  </div>
+                </div>
+              )}
+            </Card>
+          </div>
+        </div>
+      ) : null}
+
+      {address ? (
+        <>
+          {/* ---------------------------------------------------------- your balances */}
+          <div className="grid cols-4">
+            <Card title="Wallet" hint={address.slice(0, 10) + "…"}>
+              {acct.error ? (
+                <ReadError error={acct.error} what="your balances" />
+              ) : acct.loading || !acct.data ? (
+                <Loading />
+              ) : (
+                <div className="grid" style={{ gap: 12 }}>
+                  <div>
+                    <div className="stat-k">cxTUSD balance</div>
+                    <div className="stat-v">{money(acct.data.balance)}</div>
+                  </div>
+                  <div>
+                    <div className="stat-k">CTC (gas)</div>
+                    <div className="stat-v" style={{ fontSize: "0.9375rem" }}>
+                      {(Number(acct.data.ctc) / 1e18).toFixed(4)}
+                    </div>
+                  </div>
+                  <TxButton
+                    onRun={() => actions.faucet("5000")}
+                    confirmNote={<>5,000 cxTUSD minted to your address.</>}
+                  >
+                    Get 5,000 testnet cxTUSD
+                  </TxButton>
+                  <div className="footnote">
+                    The faucet is a public function on the testnet token — a real mint, not an airdrop queue.
+                  </div>
+                </div>
+              )}
+            </Card>
+
+            <Card title="As underwriting" hint="capital you supplied">
+              {acct.loading || !acct.data ? (
+                <Loading />
+              ) : (
+                <div className="grid" style={{ gap: 10 }}>
+                  <div>
+                    <div className="stat-k">Capacity available</div>
+                    <div className="stat-v ok">{money(acct.data.freeCapacity)}</div>
+                    <div className="stat-n">free to back new coverage</div>
+                  </div>
+                  <div>
+                    <div className="stat-k">Bond locked</div>
+                    <div className="stat-v">{money(acct.data.lockedBond)}</div>
+                    <div className="stat-n">securing live exposure</div>
+                  </div>
+                  <div>
+                    <div className="stat-k">Total deposited</div>
+                    <div className="stat-v" style={{ fontSize: "1rem" }}>{money(acct.data.bondCapital)}</div>
+                  </div>
+                  <Link className="btn btn-sm" href="/underwrite">Manage capacity</Link>
+                </div>
+              )}
+            </Card>
+
+            <Card title="As borrower" hint="coverage you bought">
+              <div className="grid" style={{ gap: 10 }}>
+                <div>
+                  <div className="stat-k">Valid positions</div>
+                  <div className="stat-v">{activeCoverage}</div>
+                </div>
+                <div>
+                  <div className="stat-k">Covered exposure</div>
+                  <div className="stat-v">{money(totalExposure)}</div>
+                </div>
+                <div>
+                  <div className="stat-k">Drawn</div>
+                  <div className="stat-v">{money(drawnTotal)}</div>
+                </div>
+                <Link className="btn btn-sm" href="/market">Buy coverage</Link>
+              </div>
+            </Card>
+
+            <Card title="As lender" hint="capital the pool may draw">
+              {acct.loading || !acct.data ? (
+                <Loading />
+              ) : (
+                <div className="grid" style={{ gap: 10 }}>
+                  <div>
+                    <div className="stat-k">Your pool liquidity</div>
+                    <div className="stat-v">{money(acct.data.lenderLiquidity)}</div>
+                  </div>
+                  <div>
+                    <div className="stat-k">Bond at risk (your book)</div>
+                    <div className="stat-v">{money(bondAtRisk)}</div>
+                    <div className="stat-n">bonds you have locked on live positions</div>
+                  </div>
+                  <Link className="btn btn-sm" href="/protocol">Pool detail</Link>
+                </div>
+              )}
+            </Card>
+          </div>
+
+          {/* ----------------------------------------------------------- your positions */}
+          <Card
+            title="Your coverage positions"
+            hint={`${mine.length} as borrower · ${underwriting.length} as underwriter`}
+            flush
+            actions={
+              <div className="actions">
+                <Link className="btn btn-sm" href="/positions">Open explorer</Link>
+              </div>
+            }
+          >
+            {positions.error ? (
+              <div style={{ padding: 16 }}><ReadError error={positions.error} what="positions" /></div>
+            ) : positions.loading ? (
+              <Loading what="Reading positions from the engine…" />
+            ) : (
+              <PositionsTable
+                rows={[...mine, ...underwriting.filter((u) => !mine.some((m) => m.id === u.id))]}
+                frontier={fh}
+                empty="You have no coverage positions yet. Buy coverage in the market, or provide capacity so someone else can."
+                actions={(c) => {
+                  const isBorrower = address && c.borrower.toLowerCase() === address.toLowerCase();
+                  return (
+                    <>
+                      {isBorrower && c.status === 0 && c.valid ? (
+                        <Link className="btn btn-sm btn-primary" href={`/positions?id=${String(c.id)}`}>Draw</Link>
+                      ) : null}
+                      {c.status === 0 && c.drawn === 0n ? (
+                        <TxButton
+                          onRun={() => actions.settle(c.id)}
+                          confirmNote={<>Bond returned to the underwriter.</>}
+                        >
+                          Settle
+                        </TxButton>
+                      ) : null}
+                    </>
+                  );
+                }}
               />
-            </Reveal>
-          </div>
-        </section>
+            )}
+          </Card>
+        </>
+      ) : null}
 
-        {/* ---------------------------------------------------------- problem */}
-        <Section id="problem">
-          <div className="two">
-            <Reveal>
-              <div>
-                <Eyebrow>The gap</Eyebrow>
-                <h2>
-                  Every undercollateralised loan on chain rests on somebody&apos;s opinion.
-                </h2>
-              </div>
-            </Reveal>
-            <Reveal delay={80}>
-              <div className="prose">
-                <p>
-                  A score says a wallet is trustworthy. A committee signs off. An off-chain model emits
-                  a number. When the borrower defaults, the party that made the claim loses nothing —
-                  the lender absorbs it. The claim was never a liability, so it was never really a
-                  claim.
-                </p>
-                <p>
-                  The missing piece is not better prediction. It is <strong>consequence</strong>: a way
-                  to state a claim so precisely that a single counterexample settles it, and to back it
-                  with capital that moves automatically when that counterexample appears.
-                </p>
-              </div>
-            </Reveal>
-          </div>
-        </Section>
-
-        {/* ------------------------------------------------------- mechanism */}
-        <Section id="how" tone="tint">
-          <Reveal>
-            <div className="sec-head">
-              <Eyebrow>How it works</Eyebrow>
-              <h2>A claim, a bond, and a way to be proven wrong.</h2>
-              <p className="sec-sub">
-                Four moves. Each one is a contract call on Creditcoin, and each is visible in the
-                console.
-              </p>
+      {/* -------------------------------------------------------------- attestation state */}
+      <Card title="Attestation" hint="Attestcoin, live">
+        {frontier.error ? (
+          <ReadError error={frontier.error} what="the attested frontier" />
+        ) : frontier.loading || !frontier.data ? (
+          <Loading />
+        ) : (
+          <div className="grid cols-3">
+            <div>
+              <div className="stat-k">Source chain</div>
+              <div className="stat-v" style={{ fontSize: "1rem" }}>Sepolia (key 1)</div>
             </div>
-          </Reveal>
-
-          <Reveal delay={60}>
-            <div className="figure">
-              <FlowDiagram />
+            <div>
+              <div className="stat-k">Attested frontier</div>
+              <div className="stat-v">{frontier.data.available ? frontier.data.height.toLocaleString("en-US") : "unavailable"}</div>
             </div>
-          </Reveal>
-
-          <div className="steps">
-            {[
-              {
-                n: "01",
-                t: "State a falsifiable claim",
-                d: "A predicate contract defines exactly what must not happen — a prohibited recipient, an amount above a ceiling, an amount below a floor — over an explicit block window on the source chain.",
-              },
-              {
-                n: "02",
-                t: "Bond it",
-                d: `The underwriter locks capital in the engine. The contract refuses any position where the bond is smaller than the exposure it backs: BondBelowExposure reverts before the position exists.`,
-              },
-              {
-                n: "03",
-                t: "Lend against it",
-                d: "The lending adapter calls isValid() at the moment of the draw. Coverage that is breached, expired, out of window or not yours does not gate anything — the draw reverts on chain.",
-              },
-              {
-                n: "04",
-                t: "Falsify it, or settle",
-                d: `A challenger submits one transaction proof through the Attestcoin adapter. If it satisfies the predicate inside the window, the bond moves to the challenger and the coverage dies. If the window closes clean, the underwriter takes the premium.`,
-              },
-            ].map((s, i) => (
-              <Reveal key={s.n} delay={i * 60}>
-                <article className="step">
-                  <span className="step-n">{s.n}</span>
-                  <h3>{s.t}</h3>
-                  <p>{s.d}</p>
-                </article>
-              </Reveal>
-            ))}
-          </div>
-        </Section>
-
-        {/* -------------------------------------------------- window + proof */}
-        <Section id="window">
-          <div className="two">
-            <Reveal>
-              <div>
-                <Eyebrow>The hard part</Eyebrow>
-                <h2>Windows, not vibes.</h2>
-                <div className="prose">
-                  <p>
-                    A claim without a boundary cannot be falsified. Every position names a start block,
-                    an end block and a required confirmation depth on the source chain. The Attestcoin
-                    Protocol supplies the frontier — the height it has attested to — and the engine
-                    refuses anything beyond it.
-                  </p>
-                  <p>
-                    That single rule kills a whole class of attacks: proofs from the wrong chain,
-                    proofs from outside the window, proofs shallower than the agreed depth, and
-                    settlements attempted before the evidence period is genuinely over.
-                  </p>
-                </div>
+            <div>
+              <div className="stat-k">Reader</div>
+              <div className="stat-v" style={{ fontSize: "0.875rem" }}>
+                <Pill tone={frontier.data.available ? "ok" : "bad"}>
+                  {frontier.data.available ? "precompile responding" : "precompile unreachable"}
+                </Pill>
               </div>
-            </Reveal>
-            <Reveal delay={80}>
-              <div className="figure figure-flush">
-                <WindowDiagram />
-              </div>
-            </Reveal>
-          </div>
-        </Section>
-
-        {/* ------------------------------------------------------ adversarial */}
-        <Section id="adversarial" tone="ink">
-          <Reveal>
-            <div className="sec-head">
-              <Eyebrow tone="on-ink">Adversarial evidence</Eyebrow>
-              <h2>
-                We attacked it {MEASURED.attackCount} ways. It refused {MEASURED.attacksRefused}.
-              </h2>
-              <p className="sec-sub">
-                Not in a unit test — against the deployed contracts on Creditcoin CC3. Two refusals were
-                broadcast so you can open a real failed transaction instead of trusting a claim.
-              </p>
             </div>
-          </Reveal>
-
-          <Reveal delay={60}>
-            <Shot
-              src="/product/console-attacks.png"
-              w={2880}
-              h={3082}
-              alt={`Attack matrix in the console: ${MEASURED.attackCount} attacks attempted, ${MEASURED.attacksRefused} refused, zero value leaked, each with its named revert reason`}
-              caption="The same table the console renders, generated from the run log — not typed by hand."
-              dark
-            />
-          </Reveal>
-
-          <div className="proof-grid">
-            {[
-              { k: "Draw after breach", v: `${MEASURED.refusedDrawGas.toLocaleString("en-US")} gas`, h: DEMO_TXS.failedDrawAfterBreach, d: "burned gas, moved nothing" },
-              { k: "Replayed challenge", v: `${MEASURED.refusedReplayGas.toLocaleString("en-US")} gas`, h: DEMO_TXS.failedReplay, d: "second attempt on a spent proof" },
-            ].map((p) => (
-              <Reveal key={p.k}>
-                <a className="proof" href={`${EXPLORER}/tx/${p.h}`} target="_blank" rel="noreferrer">
-                  <div className="proof-k">{p.k}</div>
-                  <div className="proof-v">{p.v}</div>
-                  <div className="proof-d">{p.d}</div>
-                  <div className="proof-h">{short(p.h, 14, 8)} ↗</div>
-                </a>
-              </Reveal>
-            ))}
           </div>
-        </Section>
-
-        {/* ----------------------------------------------------- attestcoin */}
-        <Section id="attestcoin">
-          <div className="two">
-            <Reveal>
-              <div>
-                <Eyebrow>Attestcoin Protocol</Eyebrow>
-                <h2>What is proven, and what we still assume.</h2>
-                <div className="prose">
-                  <p>
-                    The protocol is not decoration here — remove it and the product cannot exist. It is
-                    what lets a contract on Creditcoin know, without a human or an oracle committee,
-                    that a specific transaction really happened on another chain at a specific height.
-                  </p>
-                  <p>
-                    Being precise about the boundary matters more than sounding strong: the honesty of
-                    the attestation set is an assumption, and we state it rather than hide it.
-                  </p>
-                </div>
-              </div>
-            </Reveal>
-            <Reveal delay={80}>
-              <div className="figure figure-flush">
-                <TrustDiagram />
-              </div>
-            </Reveal>
-          </div>
-        </Section>
-
-        {/* ------------------------------------------------------- console 2 */}
-        <Section id="positions" tone="tint">
-          <Reveal>
-            <div className="sec-head">
-              <Eyebrow>The console</Eyebrow>
-              <h2>Every position, with the reason it is or is not valid.</h2>
-              <p className="sec-sub">
-                A breached position shows the challenge that killed it and the draw that was refused
-                afterwards. Both link to the explorer.
-              </p>
-            </div>
-          </Reveal>
-          <Reveal delay={60}>
-            <Shot
-              src="/product/console-positions.png"
-              w={2880}
-              h={2024}
-              alt="Positions view: each coverage position with status, bond, exposure, drawn amount, block window and the live isValid reason"
-              caption="Breached, settled and active positions side by side — the states a demo usually hides."
-            />
-          </Reveal>
-        </Section>
-
-        {/* -------------------------------------------------------- verify */}
-        <Section id="verify">
-          <Reveal>
-            <div className="sec-head">
-              <Eyebrow>Verify it yourself</Eyebrow>
-              <h2>Nothing here asks to be believed.</h2>
-            </div>
-          </Reveal>
-
-          <div className="verify">
-            {[
-              { t: "Open the console", d: "Live reads from the deployed engine, in a browser, no wallet needed.", a: "/dashboard", c: "Open console" },
-              { t: "Re-run the attacks", d: "node worker/scripts/attack-matrix.mjs --onchain reproduces the matrix against the same contracts.", a: REPO, c: "Repository" },
-              { t: "Read the source", d: `${MEASURED.contractsVerified} contracts verified on Blockscout — the bytecode matches the repository.`, a: `${EXPLORER}/address/${ADDR.engine}`, c: "Engine on explorer" },
-              { t: "Check the numbers", d: "Every figure on this site is generated from the evidence manifest; CI fails if the UI drifts from it.", a: `${REPO}/blob/main/evidence.json`, c: "evidence.json" },
-            ].map((v, i) => (
-              <Reveal key={v.t} delay={i * 50}>
-                <a className="vcard" href={v.a} target={v.a.startsWith("/") ? undefined : "_blank"} rel="noreferrer">
-                  <h3>{v.t}</h3>
-                  <p>{v.d}</p>
-                  <span className="vcard-c">
-                    {v.c} <Arrow />
-                  </span>
-                </a>
-              </Reveal>
-            ))}
-          </div>
-        </Section>
-
-        {/* ----------------------------------------------------------- cta */}
-        <section className="cta">
-          <div className="wrap">
-            <Reveal>
-              <h2>See a bond move because someone was wrong.</h2>
-              <p>
-                The console is live against Creditcoin CC3 testnet. The breached position in it is real,
-                and so is the failed draw that followed.
-              </p>
-              <div className="hero-cta" style={{ justifyContent: "center" }}>
-                <Link className="btn" href="/dashboard">
-                  Open the console <Arrow />
-                </Link>
-                <a className="btn btn-ghost" href={REPO} target="_blank" rel="noreferrer">
-                  GitHub
-                </a>
-              </div>
-            </Reveal>
-          </div>
-        </section>
-      </main>
-
-      <Footer />
-    </>
+        )}
+      </Card>
+    </div>
   );
 }
