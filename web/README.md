@@ -1,80 +1,65 @@
 # Coverage Exchange — web
 
-The protocol's public surface: a marketing/landing page and a live read-only console.
+A transactional client for the protocol. Not a landing page: every page performs an operation
+against the deployed contracts on Creditcoin CC3, and every button signs a transaction.
 
-## What it is
+## Pages
 
-- `/` — the protocol story in enterprise form: hero, the mechanism, the block-window
-  requirement, the adversarial record, what Attestcoin does and does not prove, the
-  console, and a verify-it-yourself section. Includes three real screenshots of the
-  console (see below).
-- `/dashboard` — the console. Reads the deployed `CoverageEngine` on Creditcoin CC3
-  (chainId 102031) over the public RPC — keyless, no wallet, no server, no cache.
-  Four views: Overview (KPIs, status mix, bond-vs-exposure, covered windows), Positions
-  (every position with its live `isValid` reason, bond, exposure, window), Attack matrix
-  (all 15 attempts with their named revert reasons), Contracts (the 9 verified
-  deployments).
+| Route | What you do there |
+|---|---|
+| `/` | Dashboard — connect a wallet, read balances and capacity, see your positions |
+| `/market` | Buy coverage: pick an underwriter with real free capacity, set the window, get an on-chain quote, purchase |
+| `/underwrite` | Provide coverage: deposit capital, price a borrower, withdraw free capacity |
+| `/positions` | Draw against coverage, repay, settle, and inspect any position by id |
+| `/challenge` | Fetch a real Attestcoin proof and breach a false claim |
+| `/activity` | The protocol's event log, reconstructed from emitted logs |
+| `/protocol` | Protocol-wide state, underwriters, deployment addresses |
+| `/docs` | The only prose page. Deliberately short. |
 
-If the RPC is unreachable the UI says so and renders nothing fabricated — the same
-fail-closed posture as the protocol. There is no fixture file anywhere in this app.
+## How the write path works
 
-## Numbers are generated, never typed
+Everything routes through `lib/tx.ts`:
 
-Every figure the UI displays — test counts, gas costs, attack counts, addresses,
-transaction hashes, the coverage rows — comes from `lib/evidence.generated.ts`, which is
-produced before every dev run and build by `scripts/gen-evidence.mjs` out of
-`evidence.json` and `worker/evidence/*.json`.
+1. **Simulate first** against current chain state, so a revert is reported as a sentence
+   (`CoverageNotValid(2)`) before the wallet opens.
+2. **Send** through the browser wallet via plain EIP-1193.
+3. **Wait for the receipt.** A hash is not a confirmation, and flows here chain transactions
+   (approve → deposit, approve → purchase). Returning on broadcast made the second call
+   simulate against pre-approval state and revert intermittently.
 
-That file is the single source of truth, and two guards keep it that way:
+Errors decode against the union of the protocol's ABIs, because they cross contract
+boundaries: the market's `purchase` reverts with the engine's `InsufficientFreeBalance`, which
+the market's own ABI cannot name.
+
+## Reading state
+
+`lib/protocol.ts` holds the live reads. There is no fixture file, no seeded array and no
+fallback value anywhere: when a read fails the hook surfaces `error` and the page says so
+rather than rendering a plausible number.
+
+`lib/activity.ts` reconstructs history from emitted events. Note `lib/logs.ts`: the CC3 public
+RPC caps the block range of a single `eth_getLogs` call (a 60,000-block window returns an
+EMPTY result after ~11s rather than an error), so scanning walks the range in 4,000-block
+chunks with bounded concurrency. Without that, a busy protocol looks dormant.
+
+## Generated constants
+
+Contract addresses come from `lib/evidence.generated.ts`, produced before every dev run and
+build by `scripts/gen-evidence.mjs` from `evidence.json` and `worker/evidence/*.json`.
 
 ```bash
 npm run check:evidence     # generator is idempotent + no hand-typed evidence values
-npm run check:no-literals  # the second guard on its own
 ```
 
-- **Drift guard** — regenerates the file and fails if the committed copy differs, so a
-  manifest change the UI has not picked up breaks the build instead of shipping.
-- **Literal guard** — scans `app/` and `components/` for comma-formatted evidence values
-  appearing as string literals. The drift guard cannot catch a number that was typed into
-  a component, because such a value never passes through the generated file. This is not
-  hypothetical: two gas figures were hardcoded on the landing page and two more in the
-  console, and this check is what found them.
+Two guards run in CI: a **drift** check (regenerate and diff) and a **literal** check
+(`scripts/check-no-literals.mjs`, which scans `app/` and `components/` for comma-formatted
+evidence numbers typed by hand — the drift check cannot catch a value that never passed
+through the generated file).
 
-`GENERATED_AT` is derived from the manifest, not the clock, so generation is
-deterministic and a clean tree always passes.
+## What is not here
 
-## Screenshots
-
-`public/product/*.png` are real captures of the console, not mockups. They are taken
-from a locally served production build:
-
-```bash
-npm run build && npm run start -- -p 3133
-```
-
-Each is captured at 1440 CSS px wide, 2x device scale, full height. `components/Site.tsx`
-requires each shot's intrinsic `w`/`h` — without them the frame collapses to zero height
-and the browser never triggers the lazy load, so the image silently never appears.
-
-## Design system
-
-Light surface (`#f6f7f9`), near-black ink, one accent (`#1449e8`), hairline rules.
-Inter for prose, JetBrains Mono for machine values (addresses, hashes, block heights,
-gas). Colour is data-semantic and single-sourced: green = active/settled-ok,
-red = breached, blue = settled, and a breach is never rendered in green.
-
-`app/globals.css` holds the marketing tokens and layout; `app/dashboard/console.css`
-holds the console shell. Both share the same token set.
-
-Reveal animations are progressive-enhancement only: content is visible by default and is
-hidden just for the animation once JavaScript has run (`html.js`), so a no-JS reader or a
-failed hydration still gets the whole page rather than a blank one.
-
-## Stack
-
-Next.js 15 (App Router, static prerender) · React 19 · viem for chain reads · hand-written
-CSS with custom-property tokens · hand-authored SVG diagrams (no image model, no
-generated art).
+No mock data, no simulated transactions, no seeded positions, no TVL/APY/user-count figures.
+The UI holds no state you cannot read from the chain yourself.
 
 ## Run
 
@@ -86,32 +71,21 @@ npm run build
 npm run check:evidence
 ```
 
-Contract addresses default to the live CC3 deployment and can be overridden through
-`.env` (see `.env.example`). The UI is **read-only** — it renders state and recorded
-evidence; the wallets and every state-changing script live in `worker/`.
-
 ## Deployment
 
-Live at **<https://coverage-exchange.vercel.app>** (Vercel, project `coverage-exchange`).
+Live at **<https://coverage-exchange.vercel.app>** (Vercel project `coverage-exchange`).
 
-This directory is the Vercel project root, and `vercel.json` pins the build explicitly:
+This directory is the Vercel project root, so only it is uploaded. That matters:
+`scripts/gen-evidence.mjs` reads `../evidence.json` and `../worker/evidence/*.json`, which live
+outside this directory and do not exist in the build sandbox, so `vercel.json` pins
+`buildCommand` to `next build` to skip the `prebuild` hook.
 
-```json
-{ "framework": "nextjs", "installCommand": "npm install --no-audit --no-fund", "buildCommand": "next build" }
-```
+Skipping it is safe rather than convenient: `lib/evidence.generated.ts` is committed and CI
+fails the build if it ever disagrees with the manifest, so the deployed file is exactly the
+file CI verified. Running `npm run build` locally still regenerates it, as it should.
 
-`buildCommand` is deliberately `next build` rather than `npm run build`. The `prebuild`
-hook runs `scripts/gen-evidence.mjs`, which reads `../evidence.json` and
-`../worker/evidence/*.json` — files **outside** this directory. Vercel uploads only the
-project directory, so that hook cannot run there. Skipping it is safe because
-`lib/evidence.generated.ts` is committed and CI fails the build if it ever disagrees with
-the manifest (`npm run check:evidence`), so the deployed file is the same file CI verified.
-Running `npm run build` locally still regenerates it, as it should.
-
-`web/.vercelignore` keeps `node_modules`, `.next` and `.vercel` out of the upload.
-
-Deploying from `web/` without an explicit `--name` would attach to the account's existing
-project called `web`, so use:
+Deploying from `web/` without an explicit `--name` would attach to this account's existing
+project called `web`, so:
 
 ```bash
 cd web && vercel deploy --prod --yes --name coverage-exchange

@@ -6,9 +6,9 @@ A lender should not have to trust that a borrower stayed inside a risk policy on
 
 Built for **BUIDL CTC 2026 Fall** (Creditcoin & Credit Labs, Attestcoin Protocol theme).
 
-**Live:** <https://coverage-exchange.vercel.app> — the landing page, with the console at
-[`/dashboard`](https://coverage-exchange.vercel.app/dashboard). Both read Creditcoin CC3 testnet
-directly from the browser; nothing is seeded in the UI.
+**Live:** <https://coverage-exchange.vercel.app> — a transactional client. Connect a wallet, buy or
+provide coverage on Creditcoin CC3, draw credit against it, and disprove a claim with a proven
+counterexample. Every button signs a real transaction; nothing is seeded in the UI.
 
 ---
 
@@ -268,7 +268,7 @@ Including the full counterexample suite A–H, the lookalike-emitter case, the r
 | Deployment on CC3 testnet | **live** — 9 contracts, verified 19/19 by `verify-deployment.mjs` |
 | Full mechanism run live | **done** — breach + slash and settlement, `worker/evidence/demo-run.json` |
 | Demo video, deck, submission form | not started (human deliverables) |
-| Frontend | `web/` — enterprise landing page + live read-only console; renders CC3 state and recorded evidence, sends no transactions. Every displayed number is generated from `evidence.json`, guarded by two CI checks (see below) |
+| Frontend | `web/` — a transactional client that operates the protocol: connect, buy coverage, provide capacity, draw, repay, settle, challenge. Every write goes through simulate → sign → wait-for-receipt; every read is a contract call. Addresses generated from `evidence.json`, guarded by two CI checks (see below) |
 
 `worker/evidence/` holds the raw output of every live run shown above: `live-precompile.json`,
 `continuity-benchmark.json`, `deployment-verification.json`, `source-evidence.json` and `demo-run.json`.
@@ -390,9 +390,11 @@ Stated here rather than discovered by a reviewer:
   claims, 22.5% over 10, depending on how many continuity roots the proofs need (both runs in
   `docs/GAS.md`).
 - **The pricing curve is deterministic and documented, not a market.** Underwriters set a per-borrower multiplier and the curve prices window length and depth. Competing underwriters on price is the obvious next step and is deliberately not claimed as done.
-- **The UI is read-only.** `web/` renders live CC3 state and the recorded evidence; it does not send
-  transactions. Buying coverage, drawing and challenging are done by the scripts in `worker/`, which is
-  where the wallets are. A judge can watch the state, not drive it, from the browser.
+- **The interface now transacts.** `web/` connects a wallet and sends real transactions — buy coverage,
+  deposit capacity, draw, repay, settle and challenge all execute against the deployed contracts from the
+  browser. What it still does not do: publish standing underwriter offers (an underwriter prices a borrower,
+  but cannot yet list fixed windows and depths), and automatically search for counterexamples — the
+  challenger supplies the source transaction. Both are named as roadmap rather than implied.
 - **The market layer is a pricing curve, not an order book** — underwriters cannot yet compete on price.
   Named as roadmap rather than implied by the name `Coverage Exchange` (`docs/ROADMAP.md`).
 
