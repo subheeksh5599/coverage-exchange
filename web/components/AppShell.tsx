@@ -168,9 +168,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 {n.label}
               </Link>
             ))}
-            <Link href="/" className="side-link">
-              <span className="side-link-no">←</span> Landing
-            </Link>
           </nav>
         </div>
       </aside>
