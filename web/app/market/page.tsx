@@ -10,7 +10,7 @@ import { useWallet } from "@/lib/wallet";
 import { useActions, toUnits } from "@/lib/actions";
 import { ADDR, SOURCE_CHAIN_KEY, SOURCE_CHAIN_LABEL, TOKEN_DECIMALS } from "@/lib/chain";
 import { useFrontier, useProtocolTotals, useQuote, useUnderwriters, money } from "@/lib/protocol";
-import { Card, Field, Notice, TxButton, Loading, ReadError, Addr, Pill } from "@/components/ui";
+import { Panel, Field, Notice, TxButton, Loading, ReadError, Addr, Pill } from "@/components/ui";
 import { formatUnits, parseUnits } from "viem";
 
 /**
@@ -121,7 +121,7 @@ export default function MarketPage() {
     Boolean(quote.data) && capacityOk && bondCoversExposure && startBig > 0n;
 
   return (
-    <div className="grid" style={{ gap: 16 }}>
+    <div className="stack" style={{ gap: 16 }}>
       <div className="page-head">
         <div>
           <h1>Buy coverage</h1>
@@ -139,10 +139,10 @@ export default function MarketPage() {
         </Notice>
       ) : null}
 
-      <div className="grid split">
+      <div className="split">
         {/* ------------------------------------------------------------------ terms */}
-        <Card title="Terms" hint="all values are protocol inputs, not preferences">
-          <div className="grid cols-2" style={{ gap: 14 }}>
+        <Panel title="Terms" hint="all values are protocol inputs, not preferences">
+          <div className="cols-2" >
             <Field label="Underwriter" hint="must hold free capacity">
               {uw.error ? (
                 <ReadError error={uw.error} what="underwriters" />
@@ -193,7 +193,7 @@ export default function MarketPage() {
 
           <div className="actions" style={{ marginTop: 16 }}>
             <button
-              className="btn btn-sm"
+              className="act act-sm"
               type="button"
               onClick={() => {
                 setStartBlock(RECORDED.startBlock);
@@ -246,24 +246,24 @@ export default function MarketPage() {
               </Field>
             </div>
           </div>
-        </Card>
+        </Panel>
 
         {/* ------------------------------------------------------------------ quote */}
-        <div className="grid" style={{ gap: 16 }}>
-          <Card title="Quote" hint={quote.error ? "read failed" : "computed on chain"}>
+        <div className="stack" style={{ gap: 16 }}>
+          <Panel title="Quote" hint={quote.error ? "read failed" : "computed on chain"}>
             {quote.error ? (
               <ReadError error={quote.error} what="the quote" />
             ) : (
-              <div className="grid" style={{ gap: 12 }}>
+              <div className="stack" >
                 <div>
                   <div className="stat-k">Premium (paid now)</div>
                   <div className="stat-v">{quote.data ? money(quote.data.premium) : "—"}</div>
-                  <div className="stat-n">to the underwriter, immediately</div>
+                  <div className="kpi-n">to the underwriter, immediately</div>
                 </div>
                 <div>
                   <div className="stat-k">Bond locked (by the underwriter)</div>
                   <div className="stat-v">{money(requiredBond)}</div>
-                  <div className="stat-n">
+                  <div className="kpi-n">
                     {totals.data ? `${totals.data.ratioBps / 100}% of exposure — the protocol floor` : "reading floor…"}
                   </div>
                 </div>
@@ -296,7 +296,7 @@ export default function MarketPage() {
                 ) : null}
                 {msg ? <Notice tone="bad">{msg}</Notice> : null}
                 <TxButton
-                  variant="primary"
+                  solid
                   block
                   disabled={!canBuy}
                   onRun={() => {
@@ -331,17 +331,17 @@ export default function MarketPage() {
                 </div>
               </div>
             )}
-          </Card>
+          </Panel>
 
-          <Card title="Capacity available" hint="real, and it can run out" flush>
+          <Panel title="Capacity available" hint="real, and it can run out" flush>
             {uw.error ? (
               <div style={{ padding: 16 }}><ReadError error={uw.error} what="underwriters" /></div>
             ) : uw.loading ? (
               <Loading />
             ) : (uw.data ?? []).length === 0 ? (
-              <div className="empty">No underwriter has deposited capital yet.</div>
+              <div className="empty-state">No underwriter has deposited capital yet.</div>
             ) : (
-              <table>
+              <table className="tbl">
                 <thead>
                   <tr>
                     <th>Underwriter</th>
@@ -366,7 +366,7 @@ export default function MarketPage() {
               Capacity is a real balance. Buying coverage consumes it by locking a bond, so a second borrower
               cannot spend capacity the first one already used.
             </div>
-          </Card>
+          </Panel>
         </div>
       </div>
 
@@ -375,7 +375,7 @@ export default function MarketPage() {
         const live = endBig + depthBig + BigInt(totals.data?.graceBlocks ?? 10_000);
         const stillLive = BigInt(f) < live;
         return (
-        <Card title="Attestation context" hint={`${SOURCE_CHAIN_LABEL} live`}>
+        <Panel title="Attestation context" hint={`${SOURCE_CHAIN_LABEL} live`}>
           <div style={{ marginBottom: 14 }}>
             <Notice tone={stillLive ? "ok" : "bad"}>
               <div>
@@ -397,7 +397,7 @@ export default function MarketPage() {
               </div>
             </Notice>
           </div>
-          <div className="grid cols-4">
+          <div className="cols-4">
             <div>
               <div className="stat-k">Attested frontier</div>
               <div className="stat-v" style={{ fontSize: "1rem" }}>{frontier.data.height.toLocaleString("en-US")}</div>
@@ -419,7 +419,7 @@ export default function MarketPage() {
               </div>
             </div>
           </div>
-        </Card>
+        </Panel>
         );
       })() : null}
     </div>

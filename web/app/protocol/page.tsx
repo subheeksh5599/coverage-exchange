@@ -8,7 +8,7 @@ import Link from "next/link";
 import { useMemo } from "react";
 import { ADDR, CHAIN_ID, CC3_RPC, EXPLORER_ADDR_BASE, SOURCE_CHAIN_LABEL, TOKEN_SYMBOL } from "@/lib/chain";
 import { useFrontier, usePositions, useProtocolTotals, useUnderwriters, money } from "@/lib/protocol";
-import { Card, Stat, Loading, ReadError, Addr, Pill } from "@/components/ui";
+import { Panel, Stat, Loading, ReadError, Addr, Pill } from "@/components/ui";
 
 export default function ProtocolPage() {
   const totals = useProtocolTotals();
@@ -35,7 +35,7 @@ export default function ProtocolPage() {
   }, [positions.data]);
 
   return (
-    <div className="grid" style={{ gap: 16 }}>
+    <div className="stack" style={{ gap: 16 }}>
       <div className="page-head">
         <div>
           <h1>Protocol</h1>
@@ -45,8 +45,8 @@ export default function ProtocolPage() {
           </p>
         </div>
         <div className="actions">
-          <Link className="btn" href="/activity">Activity log</Link>
-          <Link className="btn" href="/challenge">Challengeable positions</Link>
+          <Link className="act" href="/activity">Activity log</Link>
+          <Link className="act" href="/challenge">Challengeable positions</Link>
         </div>
       </div>
 
@@ -56,14 +56,14 @@ export default function ProtocolPage() {
         <Loading what="Reading protocol state…" />
       ) : (
         <>
-          <div className="grid cols-4">
+          <div className="cols-4">
             <Stat k="Coverage positions" v={agg.live} n={`${agg.active} active · ${agg.breached} breached · ${agg.settled} settled`} />
             <Stat k="Covered exposure" v={money(agg.coveredExposure)} n={`maximum lenders may release · ${TOKEN_SYMBOL}`} />
             <Stat k="Bonded capital" v={money(agg.bonded)} n="locked behind live positions" />
             <Stat k="Drawn" v={money(agg.drawn)} n="credit actually extended" />
           </div>
 
-          <div className="grid cols-4">
+          <div className="cols-4">
             <Stat k="Underwriter capital held" v={money(totals.data.engineBalance)} n="deposited in the engine" />
             <Stat k="Pool liquidity" v={money(totals.data.drawableLiquidity)} n={`drawable now · accounting total ${money(totals.data.totalLiquidity)}`} />
             <Stat k="Premiums paid" v={money(agg.premiums)} n="borrower → underwriter, lifetime" />
@@ -71,30 +71,30 @@ export default function ProtocolPage() {
               k="Bonds paid to challengers"
               v={money(agg.bondsPaid)}
               n={agg.breached > 0 ? `${agg.breached} breach${agg.breached === 1 ? "" : "es"}` : "no position has been breached"}
-              tone={agg.bondsPaid > 0n ? "bad" : undefined}
+              tone={agg.bondsPaid > 0n ? "blood" : undefined}
             />
           </div>
 
-          <div className="grid split">
-            <Card title="Invariant health" hint="the protocol's central claim, measured">
-              <div className="grid cols-3" style={{ gap: 14 }}>
+          <div className="split">
+            <Panel title="Invariant health" hint="the protocol's central claim, measured">
+              <div className="cols-3" >
                 <div>
                   <div className="stat-k">Bond / exposure floor</div>
                   <div className="stat-v">{totals.data.ratioBps / 100}%</div>
-                  <div className="stat-n">enforced at purchase, per position</div>
+                  <div className="kpi-n">enforced at purchase, per position</div>
                 </div>
                 <div>
                   <div className="stat-k">Valid right now</div>
-                  <div className="stat-v ok">
+                  <div className="stat-v settle-t">
                     {agg.validNow}
                     <span style={{ fontSize: "0.875rem", color: "var(--ink-3)" }}> / {agg.active}</span>
                   </div>
-                  <div className="stat-n">active positions passing <code>isValid</code></div>
+                  <div className="kpi-n">active positions passing <code>isValid</code></div>
                 </div>
                 <div>
                   <div className="stat-k">Attestation grace</div>
                   <div className="stat-v">{totals.data.graceBlocks.toLocaleString("en-US")}</div>
-                  <div className="stat-n">source blocks after a window closes</div>
+                  <div className="kpi-n">source blocks after a window closes</div>
                 </div>
               </div>
               <div className="footnote" style={{ marginTop: 14, lineHeight: 1.7 }}>
@@ -102,15 +102,15 @@ export default function ProtocolPage() {
                 window at the required depth, and no counterexample has been proven against it. Validity is
                 computed on every call — the engine stores no &quot;valid&quot; flag a keeper could expire.
               </div>
-            </Card>
+            </Panel>
 
-            <Card title="Attestation" hint="Attestcoin, live">
+            <Panel title="Attestation" hint="Attestcoin, live">
               {frontier.error ? (
                 <ReadError error={frontier.error} what="the frontier" />
               ) : frontier.loading || !frontier.data ? (
                 <Loading />
               ) : (
-                <div className="grid" style={{ gap: 12 }}>
+                <div className="stack" >
                   <div>
                     <div className="stat-k">Source chain</div>
                     <div className="stat-v" style={{ fontSize: "0.9375rem" }}>{SOURCE_CHAIN_LABEL} (key 1)</div>
@@ -131,19 +131,19 @@ export default function ProtocolPage() {
                   </div>
                 </div>
               )}
-            </Card>
+            </Panel>
           </div>
 
-          <div className="grid split">
-            <Card title="Underwriters" hint="discovered from deposit events" flush>
+          <div className="split">
+            <Panel title="Underwriters" hint="discovered from deposit events" flush>
               {uw.error ? (
                 <div style={{ padding: 16 }}><ReadError error={uw.error} what="underwriters" /></div>
               ) : uw.loading ? (
                 <Loading />
               ) : (uw.data ?? []).length === 0 ? (
-                <div className="empty">No capital has been deposited yet.</div>
+                <div className="empty-state">No capital has been deposited yet.</div>
               ) : (
-                <table>
+                <table className="tbl">
                   <thead>
                     <tr>
                       <th>Underwriter</th>
@@ -164,10 +164,10 @@ export default function ProtocolPage() {
                   </tbody>
                 </table>
               )}
-            </Card>
+            </Panel>
 
-            <Card title="Deployment" hint={`chain ${CHAIN_ID}`} flush>
-              <table>
+            <Panel title="Deployment" hint={`chain ${CHAIN_ID}`} flush>
+              <table className="tbl">
                 <tbody>
                   {(
                     [
@@ -197,7 +197,7 @@ export default function ProtocolPage() {
                 RPC <code>{CC3_RPC.replace("https://", "")}</code>. All nine contracts are source-verified on
                 Blockscout.
               </div>
-            </Card>
+            </Panel>
           </div>
         </>
       )}

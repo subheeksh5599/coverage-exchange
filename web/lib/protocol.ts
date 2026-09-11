@@ -196,16 +196,84 @@ export function useProtocolTotals() {
 }
 
 /**
- * Underwriters discovered from the engine's own deposit logs. The list is derived from real
- * events, so it cannot contain an address that never deposited, and each one's capacity is
- * then read live — which is what makes an offer fillable or not.
+ * Underwriters discovered from the engine's own deposit logs.
+ *
+ * The log scan takes ~9s on a cold load (20k blocks in 4k chunks), which is too long to make a
+ * user wait for, and the set changes only when someone deposits. So the result is cached per
+ * tab: a repeat visit paints instantly from cache and then scans only the blocks since the
+ * last scan. The cache is a latency optimisation, never a source of truth — the capacity shown
+ * is always read live from the engine.
  */
+const UW_CACHE = "cx.underwriters.v1";
+
+type UwRow = {
+  address: `0x${string}`;
+  deposited: bigint;
+  free: bigint;
+  locked: bigint;
+  total: bigint;
+};
+
+function readUwCache(): { rows: UwRow[]; lastBlock: string } | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.sessionStorage.getItem(UW_CACHE);
+    if (!raw) return null;
+    const d = JSON.parse(raw) as { rows: Record<string, string>[]; lastBlock: string };
+    return {
+      lastBlock: d.lastBlock,
+      rows: d.rows.map((r) => ({
+        address: r.address as `0x${string}`,
+        deposited: BigInt(r.deposited),
+        free: BigInt(r.free),
+        locked: BigInt(r.locked),
+        total: BigInt(r.total),
+      })),
+    };
+  } catch {
+    return null;
+  }
+}
+
+function writeUwCache(rows: UwRow[], lastBlock: bigint) {
+  if (typeof window === "undefined") return;
+  try {
+    window.sessionStorage.setItem(
+      UW_CACHE,
+      JSON.stringify({
+        lastBlock: lastBlock.toString(),
+        rows: rows.map((r) => ({
+          address: r.address,
+          deposited: r.deposited.toString(),
+          free: r.free.toString(),
+          locked: r.locked.toString(),
+          total: r.total.toString(),
+        })),
+      })
+    );
+  } catch {
+    /* storage full or blocked — the scan still works, it is just not cached */
+  }
+}
+
 export function useUnderwriters() {
   return usePoll(async () => {
     const latest = await latestBlock();
-    const logs = await scanContractEvents(ADDR.engine, ENGINE_ABI as unknown as Abi, spanFrom(latest), latest);
+    const cached = readUwCache();
+
+    // Only scan what changed since the last look; fall back to the full span on a cold load.
+    const from = cached ? BigInt(cached.lastBlock) + 1n : spanFrom(latest);
+    const logs = await scanContractEvents(
+      ADDR.engine,
+      ENGINE_ABI as unknown as Abi,
+      from,
+      latest
+    );
 
     const seen = new Map<string, { address: `0x${string}`; deposited: bigint }>();
+    if (cached) {
+      for (const r of cached.rows) seen.set(r.address.toLowerCase(), { address: r.address, deposited: r.deposited });
+    }
     for (const l of logs) {
       if (l.name !== "UnderwriterDeposited") continue;
       const a = l.args.underwriter as `0x${string}`;
@@ -216,7 +284,7 @@ export function useUnderwriters() {
       else seen.set(a.toLowerCase(), { address: a, deposited: amt });
     }
 
-    const rows = await Promise.all(
+    const rows: UwRow[] = await Promise.all(
       [...seen.values()].map(async (u) => {
         const [free, locked, total] = await Promise.all([
           publicClient.readContract({ address: ADDR.engine, abi: ENGINE_ABI, functionName: "freeBalance", args: [u.address] }),
@@ -226,6 +294,7 @@ export function useUnderwriters() {
         return { address: u.address, deposited: u.deposited, free: B(free), locked: B(locked), total: B(total) };
       })
     );
+    writeUwCache(rows, latest);
     return rows.sort((a, b) => Number(b.free - a.free));
   }, []);
 }

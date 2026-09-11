@@ -10,7 +10,7 @@ export const metadata = {
 
 export default function DocsPage() {
   return (
-    <div className="grid" style={{ gap: 16 }}>
+    <div className="stack" style={{ gap: 16 }}>
       <div className="page-head">
         <div>
           <h1>Docs</h1>
@@ -20,16 +20,16 @@ export default function DocsPage() {
           </p>
         </div>
         <div className="actions">
-          <Link className="btn btn-primary" href="/market">Buy coverage</Link>
-          <Link className="btn" href="/challenge">Challenge one</Link>
+          <Link className="act act-solid" href="/market">Buy coverage</Link>
+          <Link className="act" href="/challenge">Challenge one</Link>
         </div>
       </div>
 
-      <div className="grid split">
-        <div className="grid" style={{ gap: 16 }}>
-          <section className="card">
-            <header className="card-head"><h2>The problem</h2></header>
-            <div className="card-body">
+      <div className="split">
+        <div className="stack" style={{ gap: 16 }}>
+          <section className="panel">
+            <header className="panel-head"><h2>The problem</h2></header>
+            <div className="panel-body">
               <p style={{ margin: 0, lineHeight: 1.7, color: "var(--ink-2)" }}>
                 Cross-chain credit has a hole in the middle of it. A lender&apos;s collateral and a borrower&apos;s
                 behaviour live on one chain; the credit lives on Creditcoin. Today the lender either trusts a
@@ -43,9 +43,9 @@ export default function DocsPage() {
             </div>
           </section>
 
-          <section className="card">
-            <header className="card-head"><h2>The primitive</h2></header>
-            <div className="card-body">
+          <section className="panel">
+            <header className="panel-head"><h2>The primitive</h2></header>
+            <div className="panel-body">
               <p style={{ margin: 0, lineHeight: 1.7, color: "var(--ink-2)" }}>
                 A <strong>coverage position</strong> is bonded capital standing behind one claim about a range of{" "}
                 {SOURCE_CHAIN_LABEL} blocks:
@@ -75,9 +75,9 @@ export default function DocsPage() {
             </div>
           </section>
 
-          <section className="card">
-            <header className="card-head"><h2>What Attestcoin is doing</h2></header>
-            <div className="card-body">
+          <section className="panel">
+            <header className="panel-head"><h2>What Attestcoin is doing</h2></header>
+            <div className="panel-body">
               <p style={{ margin: 0, lineHeight: 1.7, color: "var(--ink-2)" }}>
                 The protocol is not decoration here — remove it and the product cannot exist. It is what lets a
                 contract on Creditcoin know, without a human or an oracle committee, that a specific transaction
@@ -94,10 +94,10 @@ export default function DocsPage() {
           </section>
         </div>
 
-        <div className="grid" style={{ gap: 16 }}>
-          <section className="card">
-            <header className="card-head"><h2>Do this, in order</h2></header>
-            <div className="card-body">
+        <div className="stack" style={{ gap: 16 }}>
+          <section className="panel">
+            <header className="panel-head"><h2>Do this, in order</h2></header>
+            <div className="panel-body">
               <ol style={{ margin: 0, paddingLeft: 18, lineHeight: 1.9, color: "var(--ink-2)", fontSize: "0.8125rem" }}>
                 <li>Connect a wallet and switch to CC3.</li>
                 <li>Get testnet cxTUSD from the faucet on the dashboard.</li>
@@ -120,9 +120,9 @@ export default function DocsPage() {
             </div>
           </section>
 
-          <section className="card">
-            <header className="card-head"><h2>What is not here</h2></header>
-            <div className="card-body">
+          <section className="panel">
+            <header className="panel-head"><h2>What is not here</h2></header>
+            <div className="panel-body">
               <ul style={{ margin: 0, paddingLeft: 18, lineHeight: 1.8, color: "var(--ink-2)", fontSize: "0.8125rem" }}>
                 <li>No mock data, no seeded positions, no simulated transactions.</li>
                 <li>No TVL, APY, user-count or volume figures — this deployment does not track them.</li>
@@ -132,9 +132,9 @@ export default function DocsPage() {
             </div>
           </section>
 
-          <section className="card">
-            <header className="card-head"><h2>Honest limitations</h2></header>
-            <div className="card-body">
+          <section className="panel">
+            <header className="panel-head"><h2>Honest limitations</h2></header>
+            <div className="panel-body">
               <ul style={{ margin: 0, paddingLeft: 18, lineHeight: 1.8, color: "var(--ink-2)", fontSize: "0.8125rem" }}>
                 <li>Testnet only. The demo asset is a faucet token, not a stablecoin, and holds no value.</li>
                 <li>Underwriters publish a price per borrower; they do not yet publish a standing offer with fixed windows and depths on chain.</li>

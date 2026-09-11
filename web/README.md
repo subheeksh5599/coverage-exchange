@@ -1,16 +1,28 @@
 # Coverage Exchange — web
 
-A transactional client for the protocol. Not a landing page: every page performs an operation
-against the deployed contracts on Creditcoin CC3, and every button signs a transaction.
+A transactional client for the protocol, in the protocol's own design language: void black,
+bone text, one blood-red accent, Anton for display and JetBrains Mono for everything
+machine-read. Sharp corners, hairline rules, no rounded chrome.
+
+## Two presentations, one design
+
+| Route | Presentation |
+|---|---|
+| `/` | **Landing** — full-bleed hero, a live figures marquee, the three roles, the five steps, and the proven/assumed split. Its own header, no sidebar. |
+| everything else | **Console** — sticky 288px sidebar (live frontier, numbered nav, wallet, deployed addresses) with the page in the main column. |
+
+The sidebar carries the attested frontier as a big display figure, nav numbered `01`–`08` with a
+blood-red marker on the active item, the wallet at the bottom where the actions are, and the five
+deployed addresses so any claim on screen can be checked.
 
 ## Pages
 
 | Route | What you do there |
 |---|---|
-| `/` | Dashboard — connect a wallet, read balances and capacity, see your positions |
-| `/market` | Buy coverage: pick an underwriter with real free capacity, set the window, get an on-chain quote, purchase |
+| `/dashboard` | Overview — connect a wallet, read balances and capacity, see your positions |
+| `/market` | Buy coverage: real free capacity, a window, an on-chain quote, then purchase |
 | `/underwrite` | Provide coverage: deposit capital, price a borrower, withdraw free capacity |
-| `/positions` | Draw against coverage, repay, settle, and inspect any position by id |
+| `/positions` | Position feed + explorer; draw, repay, settle by coverage id |
 | `/challenge` | Fetch a real Attestcoin proof and breach a false claim |
 | `/activity` | The protocol's event log, reconstructed from emitted logs |
 | `/protocol` | Protocol-wide state, underwriters, deployment addresses |
@@ -38,9 +50,18 @@ fallback value anywhere: when a read fails the hook surfaces `error` and the pag
 rather than rendering a plausible number.
 
 `lib/activity.ts` reconstructs history from emitted events. Note `lib/logs.ts`: the CC3 public
-RPC caps the block range of a single `eth_getLogs` call (a 60,000-block window returns an
-EMPTY result after ~11s rather than an error), so scanning walks the range in 4,000-block
-chunks with bounded concurrency. Without that, a busy protocol looks dormant.
+RPC caps the block range of a single `eth_getLogs` call — a 20,000-block call returns an
+**empty** result after ~11s rather than an error, so scanning walks the range in 4,000-block
+chunks at 8-way concurrency. Without that, a busy protocol looks dormant. Underwriter discovery
+is additionally cached per tab (sessionStorage), then scans only the delta, because a cold scan
+is ~9s.
+
+## Colour is semantic
+
+Green = valid/settled-ok, red = breached, amber = a condition that blocks a draw (capacity,
+counterparty, frontier unavailable), dim = a normal terminal state (expired). A settled position
+is **not** rendered red: red is reserved for the one thing that costs money. `ReasonPill` maps
+the engine's reason code to meaning rather than to a boolean.
 
 ## Generated constants
 

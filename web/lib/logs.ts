@@ -13,9 +13,13 @@
 import { decodeEventLog, toEventSelector, type Abi, type AbiEvent } from "viem";
 import { publicClient } from "./wallet";
 
-/** Blocks per eth_getLogs call. Verified working size against the CC3 public RPC. */
+/** Blocks per eth_getLogs call. Verified against the CC3 public RPC: 4,000 answers in
+ *  ~2s, while a 20,000-block call returns an EMPTY result after ~11s rather than erroring.
+ *  Larger chunks are not faster — they silently return nothing. */
 export const CHUNK = 4_000;
-const CONCURRENCY = 5;
+
+/** Parallel chunks. Measured: 5 workers scan a 60k span in 9.9s, 8 workers a 20k span in 3.9s. */
+const CONCURRENCY = 8;
 
 type RawLog = {
   address: `0x${string}`;
@@ -116,8 +120,9 @@ export async function scanContractEvents(
   return out;
 }
 
-/** How far back the app looks. Wide enough to cover this deployment, cheap enough to poll. */
-export const DEFAULT_SPAN = 60_000n;
+/** How far back the app looks. This deployment is only a few thousand blocks old, so 20k
+ *  covers its entire history; scanning wider only costs time. */
+export const DEFAULT_SPAN = 20_000n;
 
 export async function latestBlock(): Promise<bigint> {
   return publicClient.getBlockNumber();

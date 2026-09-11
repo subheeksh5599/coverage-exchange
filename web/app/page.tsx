@@ -1,290 +1,374 @@
 "use client";
 
-// Dashboard. The first thing the app does is ask for a wallet; everything after that is the
-// user's real position in the protocol. Nothing on this page is decorative: each number is a
-// contract read and each button signs a transaction.
+// The landing. Same design language as the console, and honest: every number on it comes
+// from a contract read or the generated evidence manifest. No TVL, no APY, no user count —
+// this deployment tracks none of those, so inventing them would be the first lie on a page
+// about claims that cost money when they are false.
 
 import Link from "next/link";
-import { useMemo } from "react";
-import { useAccountState, useFrontier, usePositions, useProtocolTotals, money } from "@/lib/protocol";
 import { useWallet } from "@/lib/wallet";
-import { useActions } from "@/lib/actions";
-import { Card, Stat, Notice, TxButton, Empty, Loading, ReadError, Pill } from "@/components/ui";
-import { PositionsTable } from "@/components/PositionsTable";
+import { useFrontier, usePositions, useProtocolTotals, money } from "@/lib/protocol";
+import { MEASURED, ADDR, REPO, SOURCE_CHAIN_LABEL, EXPLORER_ADDR_BASE } from "@/lib/chain";
+import { TOKEN_SYMBOL } from "@/lib/chain";
 
-function ConnectGate() {
-  const { connect, connecting, error, hasProvider } = useWallet();
+function short(a: string, lead = 4) {
+  return `${a.slice(0, 2 + lead)}…${a.slice(-4)}`;
+}
+
+function Marquee() {
+  const frontier = useFrontier();
+  const totals = useProtocolTotals();
+  const positions = usePositions();
+
+  const all = positions.data ?? [];
+  const items: [string, string][] = [
+    ["contract tests", String(MEASURED.forgeTests)],
+    ["attacks refused", `${MEASURED.attacksRefused}/${MEASURED.attackCount}`],
+    ["contracts verified", String(MEASURED.contractsVerified)],
+    ["live attestcoin checks", `${MEASURED.liveChecks}/${MEASURED.liveChecks}`],
+    ["positions on chain", total(positions.data)],
+    ["bonded capital", totals.data ? `${money(totals.data.engineBalance, 0)}` : "…"],
+    ["covered exposure", expo(all)],
+    ["legs outcompressed", `${MEASURED.batchSaving5}% / ${MEASURED.batchSaving10}%`],
+    [
+      `${SOURCE_CHAIN_LABEL.toLowerCase()} frontier`,
+      frontier.data?.available ? frontier.data.height.toLocaleString("en-US") : "unavailable",
+    ],
+  ];
+
   return (
-    <Card title="Connect a wallet" hint="nothing on this site works without one">
-      <div className="grid" style={{ gap: 14 }}>
-        <p style={{ margin: 0, color: "var(--ink-2)", fontSize: "0.8125rem", lineHeight: 1.6 }}>
-          Coverage Exchange is a financial application on Creditcoin CC3. Buy coverage with bonded capital
-          behind it, draw credit against that coverage, provide the capital on the other side, or challenge a
-          claim you can disprove. Every action is a transaction; there is no demo mode.
-        </p>
-        {!hasProvider ? (
-          <Notice tone="warn">
-            <div>
-              <strong>No browser wallet detected.</strong> Install MetaMask (or any EIP-1193 wallet), then reload
-              this page. The protocol reads below still work without a wallet.
-            </div>
-          </Notice>
-        ) : null}
-        {error ? <Notice tone="bad">{error}</Notice> : null}
-        <div className="actions">
-          <button className="btn btn-primary" onClick={connect} disabled={connecting || !hasProvider} type="button">
-            {connecting ? "Connecting…" : "Connect wallet"}
-          </button>
-          <Link className="btn" href="/docs">What this does</Link>
-        </div>
+    <div className="mq">
+      <div className="mq-track">
+        {items.map(([k, v]) => (
+          <span className="mq-item" key={k}>
+            {k} <span className="sep">/</span> <span className="v mono-tab">{v}</span>
+          </span>
+        ))}
+        {items.map(([k, v]) => (
+          <span className="mq-item" key={`dup-${k}`} aria-hidden>
+            {k} <span className="sep">/</span> <span className="v mono-tab">{v}</span>
+          </span>
+        ))}
       </div>
-    </Card>
+    </div>
   );
 }
 
-export default function Dashboard() {
-  const { address } = useWallet();
-  const acct = useAccountState(address);
-  const positions = usePositions();
-  const totals = useProtocolTotals();
+function total(rows: { id: bigint }[] | null) {
+  return rows ? String(rows.length) : "…";
+}
+
+function expo(rows: { status: number; maxExposure: bigint }[]) {
+  if (!rows.length) return "0";
+  const active = rows.filter((r) => r.status === 0).reduce((a, r) => a + r.maxExposure, 0n);
+  return money(active, 0);
+}
+
+function ConnectCTA() {
+  const { address, connect, connecting, hasProvider } = useWallet();
+  if (address) {
+    return (
+      <Link className="act act-solid" href="/dashboard">
+        Open the console →
+      </Link>
+    );
+  }
+  return (
+    <button
+      className="act act-solid"
+      onClick={connect}
+      disabled={connecting || !hasProvider}
+      type="button"
+      title={hasProvider ? undefined : "Install an EIP-1193 wallet such as MetaMask"}
+    >
+      {connecting ? "connecting…" : "Connect wallet"}
+    </button>
+  );
+}
+
+const ROLES: { name: string; outline?: boolean; facts: [string, string][] }[] = [
+  {
+    name: "Borrower",
+    facts: [
+      ["wants", "the credit the position unlocks"],
+      ["loses", "coverage the moment it is breached — and it paid the premium"],
+      ["can", "buy coverage, draw against it, repay, settle"],
+    ],
+  },
+  {
+    name: "Underwriter",
+    outline: true,
+    facts: [
+      ["wants", "the premium"],
+      ["loses", "the whole bond, to whoever proves the breach"],
+      ["can", "deposit capital, price a borrower, withdraw free capacity"],
+    ],
+  },
+  {
+    name: "Challenger",
+    facts: [
+      ["wants", "the bond"],
+      ["loses", "only gas"],
+      ["can", "breach a position with one proven counterexample — no stake, no allowlist"],
+    ],
+  },
+];
+
+export default function Landing() {
   const frontier = useFrontier();
-  const actions = useActions();
-
-  const mine = useMemo(
-    () => (positions.data ?? []).filter((c) => address && c.borrower.toLowerCase() === address.toLowerCase()),
-    [positions.data, address]
-  );
-  const underwriting = useMemo(
-    () => (positions.data ?? []).filter((c) => address && c.underwriter.toLowerCase() === address.toLowerCase()),
-    [positions.data, address]
-  );
-
-  const fh = frontier.data?.available ? frontier.data.height : null;
-  const activeCoverage = mine.filter((c) => c.status === 0 && c.valid).length;
-  const totalExposure = mine.reduce((a, c) => a + c.maxExposure, 0n);
-  const drawnTotal = mine.reduce((a, c) => a + c.drawn, 0n);
-  const bondAtRisk = underwriting.reduce((a, c) => a + (c.status === 0 ? c.bond : 0n), 0n);
+  const totals = useProtocolTotals();
 
   return (
-    <div className="grid" style={{ gap: 16 }}>
-      <div className="page-head">
-        <div>
-          <h1>Dashboard</h1>
-          <p>
-            Your live position in the protocol. Balances, capacity, coverage and bonds are read from the
-            deployed contracts on every refresh — if a read fails, this page says so instead of showing a stale
-            number.
+    <>
+      {/* ----------------------------------------------------------------- hero */}
+      <section className="hero">
+        <div className="hero-kicker">
+          <span className="tag">
+            <span className="blood">●</span> live on creditcoin cc3 · {MEASURED.contractsVerified}{" "}
+            contracts source-verified
+          </span>
+          <span className="tag">
+            frontier ·{" "}
+            {frontier.data?.available
+              ? frontier.data.height.toLocaleString("en-US")
+              : "unavailable"}
+          </span>
+        </div>
+
+        <h1 className="dx hero-title">
+          <span className="line">Lying about</span>
+          <span className="line">
+            another chain <span className="outline-blood">costs</span>
+          </span>
+          <span className="line">the bond.</span>
+        </h1>
+
+        <div className="hero-row">
+          <p className="hero-sub">
+            Every report about another chain is written by someone who loses nothing when it is
+            wrong. Coverage Exchange makes <strong>the claim itself carry the money</strong> — an
+            underwriter bonds capital behind a window of {SOURCE_CHAIN_LABEL} history, a lender draws
+            only while the claim stands, and <strong>one proven counterexample takes the bond</strong>.
+          </p>
+          <div className="hero-cta">
+            <ConnectCTA />
+            <Link className="act" href="/docs">
+              How it works
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      <Marquee />
+
+      {/* ------------------------------------------------------------ statement */}
+      <section className="sec">
+        <div className="sec-inner">
+          <div className="sec-tag">
+            <span className="tag">
+              <span className="no">01</span> · the problem
+            </span>
+          </div>
+          <h2 className="statement">
+            Cross-chain credit has a hole in the middle of it. The collateral lives on one chain,{" "}
+            <span className="em">the credit on another</span>, and the lender&apos;s only options are
+            to trust a report or to lend so little it does not matter.
+          </h2>
+          <p className="statement-foot">
+            The missing piece is not more data. It is a way to make a claim about cross-chain state{" "}
+            <strong>cost money when it is false</strong>. That is the whole product.
           </p>
         </div>
-        {address ? (
-          <div className="actions">
-            <Link className="btn btn-primary" href="/market">Buy coverage</Link>
-            <Link className="btn" href="/underwrite">Provide coverage</Link>
-          </div>
-        ) : null}
-      </div>
+      </section>
 
-      {!address ? (
-        <div className="grid split">
-          <ConnectGate />
-          <div className="grid" style={{ gap: 16 }}>
-            <Card title="Protocol right now" hint={totals.error ? "read failed" : "live"}>
-              {totals.error ? (
-                <ReadError error={totals.error} what="protocol totals" />
-              ) : totals.loading || !totals.data ? (
-                <Loading />
-              ) : (
-                <div className="grid cols-2" style={{ gap: 10 }}>
-                  <div>
-                    <div className="stat-k">Positions</div>
-                    <div className="stat-v">{totals.data.positionCount}</div>
+      {/* ------------------------------------------------------------ roles */}
+      <section className="sec">
+        <div className="sec-inner">
+          <div className="sec-tag">
+            <span className="tag">
+              <span className="no">02</span> · who is in the trade
+            </span>
+          </div>
+
+          {ROLES.map((r) => (
+            <div className="role-row" key={r.name}>
+              <span className="role-no">{r.name.slice(0, 2).toUpperCase()}</span>
+              <span className={`dx role-name ${r.outline ? "outline" : ""}`}>{r.name}</span>
+              <div className="role-facts">
+                {r.facts.map(([k, v]) => (
+                  <div key={k}>
+                    <span className="tag-tight">{k}</span>
+                    <div>{v}</div>
                   </div>
-                  <div>
-                    <div className="stat-k">Drawable liquidity</div>
-                    <div className="stat-v">{money(totals.data.drawableLiquidity)}</div>
-                  </div>
-                  <div>
-                    <div className="stat-k">Bonded capital held</div>
-                    <div className="stat-v">{money(totals.data.engineBalance)}</div>
-                  </div>
-                  <div>
-                    <div className="stat-k">Bond / exposure floor</div>
-                    <div className="stat-v">{totals.data.ratioBps / 100}%</div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ------------------------------------------------------------ how it works */}
+      <section className="sec">
+        <div className="sec-inner">
+          <div className="sec-tag">
+            <span className="tag">
+              <span className="no">03</span> · do it yourself
+            </span>
+          </div>
+
+          <div className="rule-list">
+            {(
+              [
+                [
+                  "Create capacity",
+                  "Deposit testnet capital. That is what creates coverage capacity — the protocol cannot mint coverage out of nothing.",
+                  "/underwrite",
+                  "Provide capacity",
+                ],
+                [
+                  "Buy coverage",
+                  "Pick an underwriter with free capacity, set a window of source-chain blocks, and the on-chain pricing curve returns the premium. The bond is locked from the underwriter.",
+                  "/market",
+                  "Buy coverage",
+                ],
+                [
+                  "Draw money",
+                  "Release credit from the pool against the position. The lending contract re-checks coverage in the same transaction — the coverage has to actually gate the money.",
+                  "/positions",
+                  "Draw",
+                ],
+                [
+                  "Prove a counterexample",
+                  "Fetch a real Attestcoin inclusion proof for a source-chain transaction inside the window and submit it. The precompile verifies it; if it violates the invariant, the position dies and the bond moves — atomically.",
+                  "/challenge",
+                  "Challenge",
+                ],
+                [
+                  "Watch the consequence",
+                  "BREACHED is terminal. The bond has moved, and a further draw against that position now reverts on chain.",
+                  "/positions",
+                  "See positions",
+                ],
+              ] as const
+            ).map(([title, body, href, cta], i) => (
+              <div className="rule-row" key={title}>
+                <span className="n">{String(i + 1).padStart(2, "0")}</span>
+                <div>
+                  <h3>{title}</h3>
+                  <p>{body}</p>
+                  <div className="act-row" style={{ marginTop: 14 }}>
+                    <Link className="act act-sm" href={href}>
+                      {cta} →
+                    </Link>
                   </div>
                 </div>
-              )}
-            </Card>
+              </div>
+            ))}
           </div>
         </div>
-      ) : null}
+      </section>
 
-      {address ? (
-        <>
-          {/* ---------------------------------------------------------- your balances */}
-          <div className="grid cols-4">
-            <Card title="Wallet" hint={address.slice(0, 10) + "…"}>
-              {acct.error ? (
-                <ReadError error={acct.error} what="your balances" />
-              ) : acct.loading || !acct.data ? (
-                <Loading />
-              ) : (
-                <div className="grid" style={{ gap: 12 }}>
-                  <div>
-                    <div className="stat-k">cxTUSD balance</div>
-                    <div className="stat-v">{money(acct.data.balance)}</div>
-                  </div>
-                  <div>
-                    <div className="stat-k">CTC (gas)</div>
-                    <div className="stat-v" style={{ fontSize: "0.9375rem" }}>
-                      {(Number(acct.data.ctc) / 1e18).toFixed(4)}
-                    </div>
-                  </div>
-                  <TxButton
-                    onRun={() => actions.faucet("5000")}
-                    confirmNote={<>5,000 cxTUSD minted to your address.</>}
-                  >
-                    Get 5,000 testnet cxTUSD
-                  </TxButton>
-                  <div className="footnote">
-                    The faucet is a public function on the testnet token — a real mint, not an airdrop queue.
-                  </div>
-                </div>
-              )}
-            </Card>
-
-            <Card title="As underwriting" hint="capital you supplied">
-              {acct.loading || !acct.data ? (
-                <Loading />
-              ) : (
-                <div className="grid" style={{ gap: 10 }}>
-                  <div>
-                    <div className="stat-k">Capacity available</div>
-                    <div className="stat-v ok">{money(acct.data.freeCapacity)}</div>
-                    <div className="stat-n">free to back new coverage</div>
-                  </div>
-                  <div>
-                    <div className="stat-k">Bond locked</div>
-                    <div className="stat-v">{money(acct.data.lockedBond)}</div>
-                    <div className="stat-n">securing live exposure</div>
-                  </div>
-                  <div>
-                    <div className="stat-k">Total deposited</div>
-                    <div className="stat-v" style={{ fontSize: "1rem" }}>{money(acct.data.bondCapital)}</div>
-                  </div>
-                  <Link className="btn btn-sm" href="/underwrite">Manage capacity</Link>
-                </div>
-              )}
-            </Card>
-
-            <Card title="As borrower" hint="coverage you bought">
-              <div className="grid" style={{ gap: 10 }}>
-                <div>
-                  <div className="stat-k">Valid positions</div>
-                  <div className="stat-v">{activeCoverage}</div>
-                </div>
-                <div>
-                  <div className="stat-k">Covered exposure</div>
-                  <div className="stat-v">{money(totalExposure)}</div>
-                </div>
-                <div>
-                  <div className="stat-k">Drawn</div>
-                  <div className="stat-v">{money(drawnTotal)}</div>
-                </div>
-                <Link className="btn btn-sm" href="/market">Buy coverage</Link>
-              </div>
-            </Card>
-
-            <Card title="As lender" hint="capital the pool may draw">
-              {acct.loading || !acct.data ? (
-                <Loading />
-              ) : (
-                <div className="grid" style={{ gap: 10 }}>
-                  <div>
-                    <div className="stat-k">Your pool liquidity</div>
-                    <div className="stat-v">{money(acct.data.lenderLiquidity)}</div>
-                  </div>
-                  <div>
-                    <div className="stat-k">Bond at risk (your book)</div>
-                    <div className="stat-v">{money(bondAtRisk)}</div>
-                    <div className="stat-n">bonds you have locked on live positions</div>
-                  </div>
-                  <Link className="btn btn-sm" href="/protocol">Pool detail</Link>
-                </div>
-              )}
-            </Card>
+      {/* ------------------------------------------------------------ attestcoin */}
+      <section className="sec">
+        <div className="sec-inner">
+          <div className="sec-tag">
+            <span className="tag">
+              <span className="no">04</span> · what is proven, and what is assumed
+            </span>
           </div>
-
-          {/* ----------------------------------------------------------- your positions */}
-          <Card
-            title="Your coverage positions"
-            hint={`${mine.length} as borrower · ${underwriting.length} as underwriter`}
-            flush
-            actions={
-              <div className="actions">
-                <Link className="btn btn-sm" href="/positions">Open explorer</Link>
+          <div className="wide">
+            <div>
+              <p className="statement-foot" style={{ marginTop: 0 }}>
+                The protocol is not decoration here — remove it and the product cannot exist. It is
+                what lets a contract on Creditcoin know, without a human or an oracle committee, that
+                a specific transaction really happened on {SOURCE_CHAIN_LABEL} at a specific height.
+              </p>
+              <p className="statement-foot" style={{ maxWidth: "60ch" }}>
+                Being precise about the boundary matters more than sounding strong:{" "}
+                <strong>the honesty of the attestation set is an assumption</strong>, and we state it
+                rather than hide it.
+              </p>
+            </div>
+            <div className="rule-list">
+              <div className="rule-row">
+                <span className="n" style={{ color: "var(--settle)" }}>
+                  ✓
+                </span>
+                <div>
+                  <h3>Attested by the Attestcoin Protocol</h3>
+                  <p>block headers, transaction inclusion, ordering</p>
+                </div>
               </div>
-            }
-          >
-            {positions.error ? (
-              <div style={{ padding: 16 }}><ReadError error={positions.error} what="positions" /></div>
-            ) : positions.loading ? (
-              <Loading what="Reading positions from the engine…" />
-            ) : (
-              <PositionsTable
-                rows={[...mine, ...underwriting.filter((u) => !mine.some((m) => m.id === u.id))]}
-                frontier={fh}
-                empty="You have no coverage positions yet. Buy coverage in the market, or provide capacity so someone else can."
-                actions={(c) => {
-                  const isBorrower = address && c.borrower.toLowerCase() === address.toLowerCase();
-                  return (
-                    <>
-                      {isBorrower && c.status === 0 && c.valid ? (
-                        <Link className="btn btn-sm btn-primary" href={`/positions?id=${String(c.id)}`}>Draw</Link>
-                      ) : null}
-                      {c.status === 0 && c.drawn === 0n ? (
-                        <TxButton
-                          onRun={() => actions.settle(c.id)}
-                          confirmNote={<>Bond returned to the underwriter.</>}
-                        >
-                          Settle
-                        </TxButton>
-                      ) : null}
-                    </>
-                  );
-                }}
-              />
-            )}
-          </Card>
-        </>
-      ) : null}
-
-      {/* -------------------------------------------------------------- attestation state */}
-      <Card title="Attestation" hint="Attestcoin, live">
-        {frontier.error ? (
-          <ReadError error={frontier.error} what="the attested frontier" />
-        ) : frontier.loading || !frontier.data ? (
-          <Loading />
-        ) : (
-          <div className="grid cols-3">
-            <div>
-              <div className="stat-k">Source chain</div>
-              <div className="stat-v" style={{ fontSize: "1rem" }}>Sepolia (key 1)</div>
-            </div>
-            <div>
-              <div className="stat-k">Attested frontier</div>
-              <div className="stat-v">{frontier.data.available ? frontier.data.height.toLocaleString("en-US") : "unavailable"}</div>
-            </div>
-            <div>
-              <div className="stat-k">Reader</div>
-              <div className="stat-v" style={{ fontSize: "0.875rem" }}>
-                <Pill tone={frontier.data.available ? "ok" : "bad"}>
-                  {frontier.data.available ? "precompile responding" : "precompile unreachable"}
-                </Pill>
+              <div className="rule-row">
+                <span className="n" style={{ color: "var(--settle)" }}>
+                  ✓
+                </span>
+                <div>
+                  <h3>Enforced by these contracts</h3>
+                  <p>
+                    bond ≥ exposure · one draw per window · counterparty check · proof verified by the
+                    precompile, in the transaction
+                  </p>
+                </div>
+              </div>
+              <div className="rule-row">
+                <span className="n">—</span>
+                <div>
+                  <h3>Assumed</h3>
+                  <p>the attestation set is honest</p>
+                </div>
               </div>
             </div>
           </div>
-        )}
-      </Card>
-    </div>
+        </div>
+      </section>
+
+      {/* ------------------------------------------------------------ closing */}
+      <section className="closing">
+        <div className="sec-inner">
+          <h2 className="dx closing-title">
+            <span className="line">Connect a wallet.</span>
+            <span className="line outline">Break a claim.</span>
+          </h2>
+          <div className="hero-row" style={{ paddingBottom: 0 }}>
+            <p className="hero-sub">
+              {totals.data
+                ? `${totals.data.positionCount} positions on this deployment · ${money(totals.data.drawableLiquidity, 0)} ${TOKEN_SYMBOL} drawable.`
+                : "Reading protocol state…"}{" "}
+              The two-transaction demo is the product itself: buy coverage, then disprove it.
+            </p>
+            <div className="hero-cta">
+              <ConnectCTA />
+              <Link className="act" href="/challenge">
+                Challenge one
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ------------------------------------------------------------ footer */}
+      <footer className="footer">
+        <div className="footer-inner">
+          <span className="tag">
+            engine {short(ADDR.engine)} ·{" "}
+            <a
+              className="txlink"
+              href={`${EXPLORER_ADDR_BASE}${ADDR.engine}`}
+              target="_blank"
+              rel="noreferrer"
+            >
+              verify on explorer
+            </a>
+          </span>
+          <span className="tag">
+            <a className="txlink" href={REPO} target="_blank" rel="noreferrer">
+              source
+            </a>{" "}
+            · testnet only, no real value
+          </span>
+        </div>
+      </footer>
+    </>
   );
 }

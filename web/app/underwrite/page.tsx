@@ -9,7 +9,7 @@ import Link from "next/link";
 import { useWallet } from "@/lib/wallet";
 import { useActions } from "@/lib/actions";
 import { useAccountState, usePositions, money } from "@/lib/protocol";
-import { Card, Field, Notice, TxButton, Loading, ReadError, Addr, Pill } from "@/components/ui";
+import { Panel, Field, Notice, TxButton, Loading, ReadError, Addr, Pill } from "@/components/ui";
 import { PositionsTable } from "@/components/PositionsTable";
 import { useFrontier } from "@/lib/protocol";
 
@@ -36,7 +36,7 @@ export default function UnderwritePage() {
 
   if (!address) {
     return (
-      <div className="grid" style={{ gap: 16 }}>
+      <div className="stack" style={{ gap: 16 }}>
         <div className="page-head">
           <div>
             <h1>Provide coverage</h1>
@@ -54,7 +54,7 @@ export default function UnderwritePage() {
   }
 
   return (
-    <div className="grid" style={{ gap: 16 }}>
+    <div className="stack" style={{ gap: 16 }}>
       <div className="page-head">
         <div>
           <h1>Provide coverage</h1>
@@ -65,60 +65,60 @@ export default function UnderwritePage() {
           </p>
         </div>
         <div className="actions">
-          <Link className="btn" href="/market">See the market</Link>
+          <Link className="act" href="/market">See the market</Link>
         </div>
       </div>
 
       {/* ------------------------------------------------------------------- capacity */}
-      <div className="grid cols-4">
-        <Card title="Free capacity" hint="backing new coverage">
+      <div className="cols-4">
+        <Panel title="Free capacity" hint="backing new coverage">
           {acct.error ? <ReadError error={acct.error} what="your capacity" /> : acct.loading || !acct.data ? <Loading /> : (
             <div>
-              <div className="stat-v ok">{money(acct.data.freeCapacity)}</div>
-              <div className="stat-n">a borrower can buy against this right now</div>
+              <div className="stat-v settle-t">{money(acct.data.freeCapacity)}</div>
+              <div className="kpi-n">a borrower can buy against this right now</div>
             </div>
           )}
-        </Card>
-        <Card title="Bond locked" hint="securing live exposure">
+        </Panel>
+        <Panel title="Bond locked" hint="securing live exposure">
           {acct.loading || !acct.data ? <Loading /> : (
             <div>
-              <div className="stat-v bad">{money(acct.data.lockedBond)}</div>
-              <div className="stat-n">lost if any position of yours is breached</div>
+              <div className="stat-v blood">{money(acct.data.lockedBond)}</div>
+              <div className="kpi-n">lost if any position of yours is breached</div>
             </div>
           )}
-        </Card>
-        <Card title="Total deposited" hint="your whole book">
+        </Panel>
+        <Panel title="Total deposited" hint="your whole book">
           {acct.loading || !acct.data ? <Loading /> : (
             <div>
               <div className="stat-v">{money(acct.data.bondCapital)}</div>
-              <div className="stat-n">free + locked</div>
+              <div className="kpi-n">free + locked</div>
             </div>
           )}
-        </Card>
-        <Card title="Premium earned" hint="from positions you back">
+        </Panel>
+        <Panel title="Premium earned" hint="from positions you back">
           {positions.loading ? <Loading /> : (
             <div>
               <div className="stat-v">{money(premiumsEarned)}</div>
-              <div className="stat-n">{mine.length} position{mine.length === 1 ? "" : "s"} you underwrite</div>
+              <div className="kpi-n">{mine.length} position{mine.length === 1 ? "" : "s"} you underwrite</div>
             </div>
           )}
-        </Card>
+        </Panel>
       </div>
 
-      <div className="grid cols-3">
+      <div className="cols-3">
         {/* -------------------------------------------------------------------- deposit */}
-        <Card title="Deposit capital" hint="creates coverage capacity">
-          <div className="grid" style={{ gap: 12 }}>
+        <Panel title="Deposit capital" hint="creates coverage capacity">
+          <div className="stack" >
             <Field label="Amount (cxTUSD)" hint={acct.data ? `wallet holds ${money(acct.data.balance)}` : "reading balance…"}>
               <input value={depositAmt} onChange={(e) => setDepositAmt(e.target.value)} inputMode="decimal" />
             </Field>
             <div className="actions">
-              <button className="btn btn-sm" type="button" onClick={() => setDepositAmt("1000")}>1,000</button>
-              <button className="btn btn-sm" type="button" onClick={() => setDepositAmt("5000")}>5,000</button>
-              <button className="btn btn-sm" type="button" onClick={() => setDepositAmt("25000")}>25,000</button>
+              <button className="act act-sm" type="button" onClick={() => setDepositAmt("1000")}>1,000</button>
+              <button className="act act-sm" type="button" onClick={() => setDepositAmt("5000")}>5,000</button>
+              <button className="act act-sm" type="button" onClick={() => setDepositAmt("25000")}>25,000</button>
               {acct.data ? (
                 <button
-                  className="btn btn-sm"
+                  className="act act-sm"
                   type="button"
                   onClick={() => {
                     if (acct.data) setDepositAmt(money(acct.data.balance, 0).replace(/,/g, ""));
@@ -129,7 +129,7 @@ export default function UnderwritePage() {
               ) : null}
             </div>
             <TxButton
-              variant="primary"
+              solid
               block
               onRun={() => actions.depositBond(depositAmt)}
               confirmNote={<>Deposited. Your free capacity is now backable by borrowers.</>}
@@ -140,18 +140,18 @@ export default function UnderwritePage() {
               Needs an ERC-20 approval first; this button requests exactly the amount you typed, then deposits.
             </div>
           </div>
-        </Card>
+        </Panel>
 
         {/* ------------------------------------------------------------------- withdraw */}
-        <Card title="Withdraw free capital" hint="reverts if it touches a bond">
-          <div className="grid" style={{ gap: 12 }}>
+        <Panel title="Withdraw free capital" hint="reverts if it touches a bond">
+          <div className="stack" >
             <Field label="Amount (cxTUSD)" hint={acct.data ? `${money(acct.data.freeCapacity)} is free to withdraw` : "reading…"}>
               <input value={withdrawAmt} onChange={(e) => setWithdrawAmt(e.target.value)} inputMode="decimal" />
             </Field>
             <div className="actions">
               {acct.data ? (
                 <button
-                  className="btn btn-sm"
+                  className="act act-sm"
                   type="button"
                   onClick={() => {
                     if (acct.data) setWithdrawAmt(money(acct.data.freeCapacity, 0).replace(/,/g, ""));
@@ -173,11 +173,11 @@ export default function UnderwritePage() {
               <code> InsufficientFreeBalance</code> rather than letting a bond walk away.
             </div>
           </div>
-        </Card>
+        </Panel>
 
         {/* ---------------------------------------------------------------------- price */}
-        <Card title="Set your price" hint="per borrower, on chain">
-          <div className="grid" style={{ gap: 12 }}>
+        <Panel title="Set your price" hint="per borrower, on chain">
+          <div className="stack" >
             <Field label="Borrower address" hint="whose risk you are pricing">
               <input value={borrower} onChange={(e) => setBorrower(e.target.value)} placeholder="0x…" />
             </Field>
@@ -197,11 +197,11 @@ export default function UnderwritePage() {
               cannot make coverage valid.
             </div>
           </div>
-        </Card>
+        </Panel>
       </div>
 
       {/* --------------------------------------------------------------------- my book */}
-      <Card
+      <Panel
         title="Positions you underwrite"
         hint={positions.error ? "read failed" : `${mine.length} position${mine.length === 1 ? "" : "s"} · ${money(myBookBond)} bond at risk`}
         flush
@@ -229,15 +229,15 @@ export default function UnderwritePage() {
             )}
           />
         )}
-      </Card>
+      </Panel>
 
-      <Card title="Who you are pricing" hint="real borrowers on this deployment" flush>
+      <Panel title="Who you are pricing" hint="real borrowers on this deployment" flush>
         {positions.loading ? <Loading /> : (() => {
           const borrowers = new Map<string, bigint>();
           for (const c of mine) borrowers.set(c.borrower, (borrowers.get(c.borrower) ?? 0n) + c.maxExposure);
-          if (borrowers.size === 0) return <div className="empty">No borrowers have bought against your capacity yet.</div>;
+          if (borrowers.size === 0) return <div className="empty-state">No borrowers have bought against your capacity yet.</div>;
           return (
-            <table>
+            <table className="tbl">
               <thead>
                 <tr><th>Borrower</th><th className="num">Exposure you back</th><th></th></tr>
               </thead>
@@ -247,7 +247,7 @@ export default function UnderwritePage() {
                     <td><Addr value={b as `0x${string}`} chars={5} /></td>
                     <td className="num">{money(exp)}</td>
                     <td className="row-actions">
-                      <button className="btn btn-sm" type="button" onClick={() => setBorrower(b)}>Price them</button>
+                      <button className="act act-sm" type="button" onClick={() => setBorrower(b)}>Price them</button>
                     </td>
                   </tr>
                 ))}
@@ -255,7 +255,7 @@ export default function UnderwritePage() {
             </table>
           );
         })()}
-      </Card>
+      </Panel>
     </div>
   );
 }

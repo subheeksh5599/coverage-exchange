@@ -11,7 +11,7 @@ import { useWallet } from "@/lib/wallet";
 import { useActions, fetchProof, previewChallenge, type ProofBundle } from "@/lib/actions";
 import { SOURCE_CHAIN_LABEL } from "@/lib/chain";
 import { useFrontier, usePositions, money } from "@/lib/protocol";
-import { Card, Field, Notice, TxButton, Loading, ReadError, Addr, Pill, StatusPill } from "@/components/ui";
+import { Panel, Field, Notice, TxButton, Loading, ReadError, Addr, Pill, StatusPill } from "@/components/ui";
 import { predicateName } from "@/components/PositionsTable";
 
 // The real counterexample from the recorded run: a Sepolia transfer to an address the
@@ -73,7 +73,7 @@ export default function ChallengePage() {
   };
 
   return (
-    <div className="grid" style={{ gap: 16 }}>
+    <div className="stack" style={{ gap: 16 }}>
       <div className="page-head">
         <div>
           <h1>Challenge a position</h1>
@@ -85,20 +85,45 @@ export default function ChallengePage() {
         </div>
       </div>
 
-      <div className="grid split">
+      <div className="split">
         {/* ------------------------------------------------------------------- submit */}
-        <Card title="Submit a counterexample" hint="the proof is the only credential">
-          <div className="grid" style={{ gap: 14 }}>
+        <Panel title="Submit a counterexample" hint="the proof is the only credential">
+          <div className="stack" >
             <Field label="Coverage id" hint={selected ? `${predicateName(selected.predicate)} · window ${selected.startBlock.toLocaleString("en-US")}→${selected.endBlock.toLocaleString("en-US")}` : "which claim are you disproving"}>
-              <select value={coverageId} onChange={(e) => { setCoverageId(e.target.value); setPreview(null); }}>
-                <option value="">Select a live position…</option>
-                {challengeable.map((c) => (
-                  <option key={String(c.id)} value={String(c.id)}>
-                    #{String(c.id)} · {predicateName(c.predicate)} · {c.startBlock.toLocaleString("en-US")}→{c.endBlock.toLocaleString("en-US")}
-                  </option>
-                ))}
-              </select>
+              {positions.loading ? (
+                <select disabled>
+                  <option>reading positions…</option>
+                </select>
+              ) : challengeable.length === 0 ? (
+                <select disabled>
+                  <option>no challengeable position right now</option>
+                </select>
+              ) : (
+                <select value={coverageId} onChange={(e) => { setCoverageId(e.target.value); setPreview(null); }}>
+                  <option value="">Select a live position…</option>
+                  {challengeable.map((c) => (
+                    <option key={String(c.id)} value={String(c.id)}>
+                      #{String(c.id)} · {predicateName(c.predicate)} · {c.startBlock.toLocaleString("en-US")}→{c.endBlock.toLocaleString("en-US")}
+                    </option>
+                  ))}
+                </select>
+              )}
             </Field>
+
+            {!positions.loading && challengeable.length === 0 ? (
+              <Notice tone="warn">
+                <div>
+                  <strong>Nothing is challengeable right now.</strong> Every position on this deployment is
+                  already terminal, or the attested {SOURCE_CHAIN_LABEL} frontier has passed its window — a
+                  position that expired can no longer be breached, because the exposure it gated has lapsed and
+                  the bond is no longer at risk (a deterministic rule, not discretion).{" "}
+                  <a className="txlink" href="/market">
+                    Buy a position with a live window
+                  </a>{" "}
+                  and it becomes challengeable immediately.
+                </div>
+              </Notice>
+            ) : null}
 
             <Field
               label={`${SOURCE_CHAIN_LABEL} transaction hash`}
@@ -108,10 +133,22 @@ export default function ChallengePage() {
             </Field>
 
             <div className="actions">
-              <button className="btn btn-sm" type="button" onClick={() => { setTxHash(RECORDED_TX); setBundle(null); setPreview(null); }}>
+              <button
+                className="act act-sm"
+                type="button"
+                disabled={challengeable.length === 0}
+                title={challengeable.length === 0 ? "No live position to challenge" : undefined}
+                onClick={() => { setTxHash(RECORDED_TX); setBundle(null); setPreview(null); }}
+              >
                 Use the recorded counterexample
               </button>
-              <button className="btn btn-primary btn-sm" type="button" disabled={busy || !/^0x[0-9a-fA-F]{64}$/.test(txHash.trim())} onClick={() => doFetch()}>
+              <button
+                className="act act-solid act-sm"
+                type="button"
+                disabled={busy || challengeable.length === 0 || !/^0x[0-9a-fA-F]{64}$/.test(txHash.trim())}
+                title={challengeable.length === 0 ? "No live position to challenge" : undefined}
+                onClick={() => doFetch()}
+              >
                 {busy ? "Fetching proof…" : "Fetch proof & preflight"}
               </button>
             </div>
@@ -130,7 +167,7 @@ export default function ChallengePage() {
             ) : null}
 
             {bundle ? (
-              <div className="grid" style={{ gap: 10 }}>
+              <div className="stack" >
                 <div className="stat-k">Proof retrieved</div>
                 <dl className="kv">
                   <dt>Source block</dt><dd>{bundle.blockHeight.toLocaleString("en-US")}</dd>
@@ -167,7 +204,7 @@ export default function ChallengePage() {
             ) : null}
 
             <TxButton
-              variant="danger"
+              danger
               block
               disabled={!bundle || !coverageId || !preview?.ok || !address}
               onRun={() => actions.challenge({ ...bundle!, coverageId: Number(coverageId) })}
@@ -181,11 +218,11 @@ export default function ChallengePage() {
               <div className="footnote">The challenge itself is a transaction, so it needs a wallet. Everything above it is readable without one.</div>
             )}
           </div>
-        </Card>
+        </Panel>
 
         {/* ------------------------------------------------------------------ context */}
-        <div className="grid" style={{ gap: 16 }}>
-          <Card title="What the chain will check" hint="in this order, in one transaction">
+        <div className="stack" style={{ gap: 16 }}>
+          <Panel title="What the chain will check" hint="in this order, in one transaction">
             <ol className="footnote" style={{ lineHeight: 1.7, paddingLeft: 18, margin: 0 }}>
               <li>the position exists and is still live</li>
               <li>the proof is for <strong>this</strong> source chain</li>
@@ -199,17 +236,17 @@ export default function ChallengePage() {
             <div className="footnote" style={{ marginTop: 12 }}>
               Fail any one and the transaction reverts with a named error instead of paying a bond.
             </div>
-          </Card>
+          </Panel>
 
-          <Card title="Live positions" hint="ACTIVE and still inside an open window" flush>
+          <Panel title="Live positions" hint="ACTIVE and still inside an open window" flush>
             {positions.error ? (
               <div style={{ padding: 16 }}><ReadError error={positions.error} what="positions" /></div>
             ) : positions.loading ? (
               <Loading />
             ) : challengeable.length === 0 ? (
-              <div className="empty">No challengeable positions right now.</div>
+              <div className="empty-state">No challengeable positions right now.</div>
             ) : (
-              <table>
+              <table className="tbl">
                 <thead>
                   <tr>
                     <th>#</th>
@@ -229,7 +266,7 @@ export default function ChallengePage() {
                       </td>
                       <td className="num">{money(c.bond)}</td>
                       <td className="row-actions">
-                        <button className="btn btn-sm" type="button" onClick={() => { setCoverageId(String(c.id)); setPreview(null); }}>
+                        <button className="act act-sm" type="button" onClick={() => { setCoverageId(String(c.id)); setPreview(null); }}>
                           Target
                         </button>
                       </td>
@@ -242,10 +279,10 @@ export default function ChallengePage() {
               The bond shown is what a successful challenge pays you. It is real capital the underwriter cannot
               withdraw while the position is live.
             </div>
-          </Card>
+          </Panel>
 
           {selected ? (
-            <Card title={`Position #${String(selected.id)}`} hint="the claim you are attacking">
+            <Panel title={`Position #${String(selected.id)}`} hint="the claim you are attacking">
               <dl className="kv">
                 <dt>Status</dt><dd><StatusPill status={selected.status} /></dd>
                 <dt>Borrower</dt><dd><Addr value={selected.borrower} chars={5} /></dd>
@@ -265,7 +302,7 @@ export default function ChallengePage() {
               ) : (
                 <div style={{ marginTop: 12 }}><Pill tone="warn">bond is live and claimable</Pill></div>
               )}
-            </Card>
+            </Panel>
           ) : null}
         </div>
       </div>

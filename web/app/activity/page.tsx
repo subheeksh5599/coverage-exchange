@@ -6,7 +6,7 @@
 import { useMemo, useState } from "react";
 import { useWallet } from "@/lib/wallet";
 import { useActivity } from "@/lib/activity";
-import { Card, Loading, ReadError, TxLink, Addr, Pill } from "@/components/ui";
+import { Panel, Loading, ReadError, TxLink, Addr, Pill } from "@/components/ui";
 
 const FILTERS = ["all", "coverage", "draw", "challenge", "breach", "capital"] as const;
 
@@ -30,7 +30,7 @@ export default function ActivityPage() {
   }, [act.data]);
 
   return (
-    <div className="grid" style={{ gap: 16 }}>
+    <div className="stack" style={{ gap: 16 }}>
       <div className="page-head">
         <div>
           <h1>Activity</h1>
@@ -42,14 +42,14 @@ export default function ActivityPage() {
         </div>
         <div className="actions">
           {address ? (
-            <button className="btn" type="button" onClick={() => setOnlyMine((v) => !v)} aria-pressed={onlyMine}>
+            <button className="act" type="button" onClick={() => setOnlyMine((v) => !v)} aria-pressed={onlyMine}>
               {onlyMine ? "Showing mine" : "Only my activity"}
             </button>
           ) : null}
         </div>
       </div>
 
-      <Card
+      <Panel
         title="Event log"
         hint={act.error ? "read failed" : `${rows.length} event${rows.length === 1 ? "" : "s"}`}
         flush
@@ -68,14 +68,14 @@ export default function ActivityPage() {
         ) : act.loading ? (
           <Loading what="Scanning the protocol's event logs…" />
         ) : rows.length === 0 ? (
-          <div className="empty">
+          <div className="empty-state">
             No events matching this filter.
             <div className="footnote" style={{ marginTop: 8 }}>
               An empty feed is a real answer: it means nothing has happened, not that the data failed to load.
             </div>
           </div>
         ) : (
-          <table>
+          <table className="tbl">
             <thead>
               <tr>
                 <th>Block</th>
@@ -100,9 +100,9 @@ export default function ActivityPage() {
             </tbody>
           </table>
         )}
-      </Card>
+      </Panel>
 
-      <Card title="How this is built" hint="no local indexer">
+      <Panel title="How this is built" hint="no local indexer">
         <div className="footnote" style={{ lineHeight: 1.7 }}>
           The feed is assembled from <code>UnderwriterDeposited</code>, <code>CoveragePurchased</code>,{" "}
           <code>CoverageCreated</code>, <code>CoverageConsumed</code>, <code>Drawn</code>, <code>Repaid</code>,{" "}
@@ -110,7 +110,7 @@ export default function ActivityPage() {
           liquidity events, across the last ~950,000 Creditcoin blocks. Reload the page after a transaction and it
           appears here, sourced from the receipt rather than from anything this app stored.
         </div>
-      </Card>
+      </Panel>
     </div>
   );
 }

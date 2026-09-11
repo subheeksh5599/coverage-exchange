@@ -12,7 +12,7 @@ import { useActions } from "@/lib/actions";
 import { ADDR, LENDING_ABI, SOURCE_CHAIN_LABEL } from "@/lib/chain";
 import { useAccountState, useFrontier, usePositions, money, type Coverage } from "@/lib/protocol";
 import { publicClient } from "@/lib/wallet";
-import { Card, Field, Notice, TxButton, Loading, ReadError, Empty, Pill, Addr } from "@/components/ui";
+import { Panel, Field, Notice, TxButton, Loading, ReadError, Empty, Pill, Addr } from "@/components/ui";
 import { PositionsTable, predicateName } from "@/components/PositionsTable";
 
 /** Read-only preflight, exactly the checks the money path repeats. */
@@ -93,7 +93,7 @@ function PositionsInner() {
   const drawCoverage = drawId ? all.find((c) => c.id === BigInt(Number(drawId))) : null;
 
   return (
-    <div className="grid" style={{ gap: 16 }}>
+    <div className="stack" style={{ gap: 16 }}>
       <div className="page-head">
         <div>
           <h1>Positions</h1>
@@ -107,12 +107,12 @@ function PositionsInner() {
 
       {/* ------------------------------------------------------------------ draw money */}
       {address ? (
-        <div className="grid split">
-          <Card title="Draw against coverage" hint="coverage must gate this or the transaction reverts">
+        <div className="split">
+          <Panel title="Draw against coverage" hint="coverage must gate this or the transaction reverts">
             {positions.loading ? (
               <Loading />
             ) : (
-              <div className="grid cols-2" style={{ gap: 14 }}>
+              <div className="cols-2" >
                 <Field label="Position" hint={`${myDrawable.length} valid position${myDrawable.length === 1 ? "" : "s"} you may draw on`}>
                   <select value={drawId} onChange={(e) => setDrawId(e.target.value)}>
                     <option value="">Select a position…</option>
@@ -149,7 +149,7 @@ function PositionsInner() {
 
                 <div style={{ gridColumn: "1 / -1" }} className="actions">
                   <TxButton
-                    variant="primary"
+                    solid
                     disabled={!drawId || Number(drawAmt) <= 0 || !drawPreview?.ok}
                     onRun={() => actions.draw(BigInt(Number(drawId)), drawAmt)}
                     confirmNote={<>Credit released from the pool and recorded as exposure on that position.</>}
@@ -162,10 +162,10 @@ function PositionsInner() {
                 </div>
               </div>
             )}
-          </Card>
+          </Panel>
 
-          <Card title="Repay exposure" hint="frees capacity inside the position">
-            <div className="grid" style={{ gap: 12 }}>
+          <Panel title="Repay exposure" hint="frees capacity inside the position">
+            <div className="stack" >
               <Field label="Position">
                 <select value={repayId} onChange={(e) => setRepayId(e.target.value)}>
                   <option value="">Select a position…</option>
@@ -205,7 +205,7 @@ function PositionsInner() {
                 </div>
               ) : null}
             </div>
-          </Card>
+          </Panel>
         </div>
       ) : (
         <Notice tone="info">
@@ -217,8 +217,8 @@ function PositionsInner() {
       )}
 
       {/* ------------------------------------------------------------------- explorer */}
-      <Card title="Coverage explorer" hint="inspect any position by id">
-        <div className="grid" style={{ gap: 12 }}>
+      <Panel title="Coverage explorer" hint="inspect any position by id">
+        <div className="stack" >
           <Field label="Coverage id" hint="the id minted at purchase — any position, not just yours">
             <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="e.g. 10" inputMode="numeric" />
           </Field>
@@ -228,7 +228,7 @@ function PositionsInner() {
             </Notice>
           ) : null}
           {looked && looked !== "missing" ? (
-            <div className="grid cols-3" style={{ alignItems: "start" }}>
+            <div className="cols-3" style={{ alignItems: "start" }}>
               <div>
                 <div className="stat-k" style={{ marginBottom: 8 }}>Record</div>
                 <dl className="kv">
@@ -263,10 +263,10 @@ function PositionsInner() {
           ) : null}
           {!query ? <div className="footnote">On {SOURCE_CHAIN_LABEL} windows are source-chain heights; a position only gates credit while the attested frontier still covers them.</div> : null}
         </div>
-      </Card>
+      </Panel>
 
       {/* ---------------------------------------------------------------------- table */}
-      <Card
+      <Panel
         title="All positions"
         hint={positions.error ? "read failed" : `${all.length} on this deployment`}
         flush
@@ -297,7 +297,7 @@ function PositionsInner() {
             }
             actions={(c: Coverage) => (
               <>
-                <button className="btn btn-sm" type="button" onClick={() => { setDrawId(String(c.id)); setQuery(String(c.id)); }}>
+                <button className="act act-sm" type="button" onClick={() => { setDrawId(String(c.id)); setQuery(String(c.id)); }}>
                   Inspect
                 </button>
                 {c.status === 0 && c.drawn === 0n ? (
@@ -307,9 +307,9 @@ function PositionsInner() {
             )}
           />
         )}
-      </Card>
+      </Panel>
 
-      <Card title="Nothing here is simulated" hint="the contract of this page">
+      <Panel title="Nothing here is simulated" hint="the contract of this page">
         <div className="footnote" style={{ lineHeight: 1.7 }}>
           Every figure on this page is a contract read on Creditcoin CC3, refreshed every 12 seconds, and every
           button signs a transaction. If the RPC stops answering, the page reports the failure rather than
@@ -318,7 +318,7 @@ function PositionsInner() {
             <Link href="/challenge">Challenge a position</Link> · <Link href="/activity">See protocol activity</Link>
           </div>
         </div>
-      </Card>
+      </Panel>
 
       {!positions.error && !positions.loading && all.length === 0 ? <Empty>—</Empty> : null}
     </div>
