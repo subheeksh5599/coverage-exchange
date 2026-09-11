@@ -293,3 +293,58 @@ export function SecTag({ no, children }: { no: string; children: ReactNode }) {
 }
 
 export { EXPLORER_ADDR_BASE, EXPLORER_TX_BASE };
+
+/** An amount field with the unit shown inside the well, so the number is never ambiguous. */
+export function AmountInput({
+  value,
+  onChange,
+  unit,
+  placeholder,
+  disabled,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  unit?: string;
+  placeholder?: string;
+  disabled?: boolean;
+}) {
+  return (
+    <span className="input-unit">
+      <input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        inputMode="decimal"
+        disabled={disabled}
+      />
+      {unit ? <span className="unit">{unit}</span> : null}
+    </span>
+  );
+}
+
+/** Quick-fill chips for an amount field. */
+export function Chips({
+  options,
+  onPick,
+  disabled,
+}: {
+  options: { label: string; value: string }[];
+  onPick: (v: string) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <div className="chip-row">
+      {options.map((o) => (
+        <button
+          key={o.label}
+          className="chip"
+          type="button"
+          disabled={disabled}
+          onClick={() => onPick(o.value)}
+        >
+          {o.label}
+        </button>
+      ))}
+    </div>
+  );
+}

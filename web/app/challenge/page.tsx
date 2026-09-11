@@ -129,7 +129,17 @@ export default function ChallengePage() {
               label={`${SOURCE_CHAIN_LABEL} transaction hash`}
               hint="the transaction you claim violates the position's invariant, inside its window"
             >
-              <input value={txHash} onChange={(e) => { setTxHash(e.target.value); setBundle(null); setPreview(null); }} />
+              <input
+                value={txHash}
+                onChange={(e) => {
+                  setTxHash(e.target.value.trim());
+                  setBundle(null);
+                  setPreview(null);
+                }}
+                spellCheck={false}
+                autoComplete="off"
+                style={{ fontSize: 11.5, letterSpacing: "0.02em" }}
+              />
             </Field>
 
             <div className="actions">

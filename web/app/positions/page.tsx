@@ -12,7 +12,20 @@ import { useActions } from "@/lib/actions";
 import { ADDR, LENDING_ABI, SOURCE_CHAIN_LABEL } from "@/lib/chain";
 import { useAccountState, useFrontier, usePositions, money, type Coverage } from "@/lib/protocol";
 import { publicClient } from "@/lib/wallet";
-import { Panel, Field, Notice, TxButton, Loading, ReadError, Empty, Pill, Addr } from "@/components/ui";
+import {
+  Panel,
+  Field,
+  Notice,
+  TxButton,
+  Loading,
+  ReadError,
+  Empty,
+  Pill,
+  Addr,
+  AmountInput,
+  Chips,
+} from "@/components/ui";
+import { TOKEN_SYMBOL } from "@/lib/chain";
 import { PositionsTable, predicateName } from "@/components/PositionsTable";
 
 /** Read-only preflight, exactly the checks the money path repeats. */
@@ -123,8 +136,21 @@ function PositionsInner() {
                     ))}
                   </select>
                 </Field>
-                <Field label="Amount (cxTUSD)" hint={drawCoverage ? `${money(drawCoverage.maxExposure - drawCoverage.drawn)} remaining on this position` : "choose a position first"}>
-                  <input value={drawAmt} onChange={(e) => setDrawAmt(e.target.value)} inputMode="decimal" />
+                <Field label="Amount" hint={drawCoverage ? `${money(drawCoverage.maxExposure - drawCoverage.drawn)} ${TOKEN_SYMBOL} remaining on this position` : "choose a position first"}>
+                  <AmountInput value={drawAmt} onChange={setDrawAmt} unit={TOKEN_SYMBOL} />
+                  {drawCoverage ? (
+                    <Chips
+                      options={[
+                        { label: "500", value: "500" },
+                        { label: "1,000", value: "1000" },
+                        {
+                          label: "all remaining",
+                          value: money(drawCoverage.maxExposure - drawCoverage.drawn, 0).replace(/,/g, ""),
+                        },
+                      ]}
+                      onPick={setDrawAmt}
+                    />
+                  ) : null}
                 </Field>
 
                 <div style={{ gridColumn: "1 / -1" }}>
@@ -179,17 +205,31 @@ function PositionsInner() {
                 </select>
               </Field>
               <Field
-                label="Amount (cxTUSD)"
+                label="Amount"
                 hint={
                   repayId
                     ? (() => {
                         const c = all.find((x) => x.id === BigInt(Number(repayId)));
-                        return c ? `${money(c.drawn)} outstanding` : "";
+                        return c ? `${money(c.drawn)} ${TOKEN_SYMBOL} outstanding` : "";
                       })()
                     : "choose a position first"
                 }
               >
-                <input value={repayAmt} onChange={(e) => setRepayAmt(e.target.value)} inputMode="decimal" />
+                <AmountInput value={repayAmt} onChange={setRepayAmt} unit={TOKEN_SYMBOL} />
+                {repayId ? (
+                  <Chips
+                    options={[
+                      {
+                        label: "all outstanding",
+                        value: (() => {
+                          const c = all.find((x) => x.id === BigInt(Number(repayId)));
+                          return c ? money(c.drawn, 0).replace(/,/g, "") : "";
+                        })(),
+                      },
+                    ]}
+                    onPick={setRepayAmt}
+                  />
+                ) : null}
               </Field>
               <TxButton
                 block

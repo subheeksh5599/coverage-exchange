@@ -9,7 +9,19 @@ import Link from "next/link";
 import { useWallet } from "@/lib/wallet";
 import { useActions } from "@/lib/actions";
 import { useAccountState, usePositions, money } from "@/lib/protocol";
-import { Panel, Field, Notice, TxButton, Loading, ReadError, Addr, Pill } from "@/components/ui";
+import { TOKEN_SYMBOL } from "@/lib/chain";
+import {
+  Panel,
+  Field,
+  Notice,
+  TxButton,
+  Loading,
+  ReadError,
+  Addr,
+  Pill,
+  AmountInput,
+  Chips,
+} from "@/components/ui";
 import { PositionsTable } from "@/components/PositionsTable";
 import { useFrontier } from "@/lib/protocol";
 
@@ -109,25 +121,20 @@ export default function UnderwritePage() {
         {/* -------------------------------------------------------------------- deposit */}
         <Panel title="Deposit capital" hint="creates coverage capacity">
           <div className="stack" >
-            <Field label="Amount (cxTUSD)" hint={acct.data ? `wallet holds ${money(acct.data.balance)}` : "reading balance…"}>
-              <input value={depositAmt} onChange={(e) => setDepositAmt(e.target.value)} inputMode="decimal" />
+            <Field label="Amount" hint={acct.data ? `wallet holds ${money(acct.data.balance)} ${TOKEN_SYMBOL}` : "reading balance…"}>
+              <AmountInput value={depositAmt} onChange={setDepositAmt} unit={TOKEN_SYMBOL} />
+              <Chips
+                options={[
+                  { label: "1,000", value: "1000" },
+                  { label: "5,000", value: "5000" },
+                  { label: "25,000", value: "25000" },
+                  ...(acct.data
+                    ? [{ label: "max", value: money(acct.data.balance, 0).replace(/,/g, "") }]
+                    : []),
+                ]}
+                onPick={setDepositAmt}
+              />
             </Field>
-            <div className="actions">
-              <button className="act act-sm" type="button" onClick={() => setDepositAmt("1000")}>1,000</button>
-              <button className="act act-sm" type="button" onClick={() => setDepositAmt("5000")}>5,000</button>
-              <button className="act act-sm" type="button" onClick={() => setDepositAmt("25000")}>25,000</button>
-              {acct.data ? (
-                <button
-                  className="act act-sm"
-                  type="button"
-                  onClick={() => {
-                    if (acct.data) setDepositAmt(money(acct.data.balance, 0).replace(/,/g, ""));
-                  }}
-                >
-                  Max
-                </button>
-              ) : null}
-            </div>
             <TxButton
               solid
               block
@@ -145,22 +152,20 @@ export default function UnderwritePage() {
         {/* ------------------------------------------------------------------- withdraw */}
         <Panel title="Withdraw free capital" hint="reverts if it touches a bond">
           <div className="stack" >
-            <Field label="Amount (cxTUSD)" hint={acct.data ? `${money(acct.data.freeCapacity)} is free to withdraw` : "reading…"}>
-              <input value={withdrawAmt} onChange={(e) => setWithdrawAmt(e.target.value)} inputMode="decimal" />
-            </Field>
-            <div className="actions">
+            <Field label="Amount" hint={acct.data ? `${money(acct.data.freeCapacity)} ${TOKEN_SYMBOL} is free to withdraw` : "reading…"}>
+              <AmountInput value={withdrawAmt} onChange={setWithdrawAmt} unit={TOKEN_SYMBOL} />
               {acct.data ? (
-                <button
-                  className="act act-sm"
-                  type="button"
-                  onClick={() => {
-                    if (acct.data) setWithdrawAmt(money(acct.data.freeCapacity, 0).replace(/,/g, ""));
-                  }}
-                >
-                  Max free
-                </button>
+                <Chips
+                  options={[
+                    {
+                      label: "max free",
+                      value: money(acct.data.freeCapacity, 0).replace(/,/g, ""),
+                    },
+                  ]}
+                  onPick={setWithdrawAmt}
+                />
               ) : null}
-            </div>
+            </Field>
             <TxButton
               block
               onRun={() => actions.withdrawBond(withdrawAmt)}
@@ -182,7 +187,16 @@ export default function UnderwritePage() {
               <input value={borrower} onChange={(e) => setBorrower(e.target.value)} placeholder="0x…" />
             </Field>
             <Field label="Multiplier (basis points)" hint="10000 = neutral · 1000 = 0.10× · 50000 = 5.00×">
-              <input value={bps} onChange={(e) => setBps(e.target.value)} inputMode="numeric" />
+              <AmountInput value={bps} onChange={setBps} unit={`${(Number(bps || 0) / 10000).toFixed(3)}×`} />
+              <Chips
+                options={[
+                  { label: "0.50×", value: "5000" },
+                  { label: "neutral", value: "10000" },
+                  { label: "1.50×", value: "15000" },
+                  { label: "3.00×", value: "30000" },
+                ]}
+                onPick={setBps}
+              />
             </Field>
             <TxButton
               block

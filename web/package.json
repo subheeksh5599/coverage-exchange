@@ -12,7 +12,8 @@
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "check:no-literals": "node scripts/check-no-literals.mjs",
-    "check:evidence": "node scripts/gen-evidence.mjs && git diff --exit-code -- lib/evidence.generated.ts && npm run check:no-literals"
+    "check:styles": "node scripts/check-styles.mjs",
+    "check:evidence": "node scripts/gen-evidence.mjs && git diff --exit-code -- lib/evidence.generated.ts && npm run check:no-literals && npm run check:styles"
   },
   "dependencies": {
     "gsap": "^3.15.0",

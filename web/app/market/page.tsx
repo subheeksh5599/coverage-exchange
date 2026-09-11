@@ -8,9 +8,20 @@
 import { useEffect, useMemo, useState } from "react";
 import { useWallet } from "@/lib/wallet";
 import { useActions, toUnits } from "@/lib/actions";
-import { ADDR, SOURCE_CHAIN_KEY, SOURCE_CHAIN_LABEL, TOKEN_DECIMALS } from "@/lib/chain";
+import { ADDR, SOURCE_CHAIN_KEY, SOURCE_CHAIN_LABEL, TOKEN_DECIMALS, TOKEN_SYMBOL } from "@/lib/chain";
 import { useFrontier, useProtocolTotals, useQuote, useUnderwriters, money } from "@/lib/protocol";
-import { Panel, Field, Notice, TxButton, Loading, ReadError, Addr, Pill } from "@/components/ui";
+import {
+  Panel,
+  Field,
+  Notice,
+  TxButton,
+  Loading,
+  ReadError,
+  Addr,
+  Pill,
+  AmountInput,
+  Chips,
+} from "@/components/ui";
 import { formatUnits, parseUnits } from "viem";
 
 /**
@@ -170,20 +181,53 @@ export default function MarketPage() {
               )}
             </Field>
 
-            <Field label="Covered exposure (cxTUSD)" hint="the largest amount a lender may release">
-              <input value={exposure} onChange={(e) => setExposure(e.target.value)} inputMode="decimal" />
+            <Field label="Covered exposure" hint="the largest amount a lender may release">
+              <AmountInput value={exposure} onChange={setExposure} unit={TOKEN_SYMBOL} />
+              <Chips
+                options={[
+                  { label: "1,000", value: "1000" },
+                  { label: "5,000", value: "5000" },
+                  { label: "10,000", value: "10000" },
+                  { label: "25,000", value: "25000" },
+                ]}
+                onPick={setExposure}
+              />
             </Field>
 
             <Field label={`Window start block (${SOURCE_CHAIN_LABEL})`} hint="defaulted to the attested frontier">
               <input value={startBlock} onChange={(e) => setStartBlock(e.target.value)} inputMode="numeric" />
+              <Chips
+                options={[
+                  { label: "at frontier", value: String(frontier.data?.height ?? "") },
+                  { label: "−1,000", value: String(Math.max(0, Number(frontier.data?.height ?? 0) - 1000)) },
+                ]}
+                onPick={setStartBlock}
+                disabled={!frontier.data?.available}
+              />
             </Field>
 
             <Field label="Window length (blocks)" hint={`covers ${Number(startBig).toLocaleString("en-US")} → ${Number(endBig).toLocaleString("en-US")}`}>
-              <input value={windowBlocks} onChange={(e) => setWindowBlocks(e.target.value)} inputMode="numeric" />
+              <AmountInput value={windowBlocks} onChange={setWindowBlocks} unit="blocks" />
+              <Chips
+                options={[
+                  { label: "100", value: "100" },
+                  { label: "1,000", value: "1000" },
+                  { label: "10,000", value: "10000" },
+                ]}
+                onPick={setWindowBlocks}
+              />
             </Field>
 
             <Field label="Required attestation depth" hint="blocks the frontier must pass endBlock by">
-              <input value={depth} onChange={(e) => setDepth(e.target.value)} inputMode="numeric" />
+              <AmountInput value={depth} onChange={setDepth} unit="blocks" />
+              <Chips
+                options={[
+                  { label: "32", value: "32" },
+                  { label: "128", value: "128" },
+                  { label: "1,000", value: "1000" },
+                ]}
+                onPick={setDepth}
+              />
             </Field>
 
             <Field label="Source contract" hint="the only emitter accepted as evidence">
