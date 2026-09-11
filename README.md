@@ -6,9 +6,9 @@ A lender should not have to trust that a borrower stayed inside a risk policy on
 
 Built for **BUIDL CTC 2026 Fall** (Creditcoin & Credit Labs, Attestcoin Protocol theme).
 
-**Live:** <https://coverage-exchange.vercel.app> — a transactional client. Connect a wallet, buy or
-provide coverage on Creditcoin CC3, draw credit against it, and disprove a claim with a proven
-counterexample. Every button signs a real transaction; nothing is seeded in the UI.
+**Live:** <https://coverage-exchange.vercel.app> — landing page at `/`, console at `/dashboard`.
+Connect a wallet, buy or provide coverage on Creditcoin CC3, draw credit against it, and disprove a
+claim with a proven counterexample. Every button signs a real transaction; nothing is seeded.
 
 ---
 

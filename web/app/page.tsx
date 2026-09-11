@@ -124,8 +124,8 @@ export default function Landing() {
       <section className="hero">
         <div className="hero-kicker">
           <span className="tag">
-            <span className="blood">●</span> live on creditcoin cc3 · {MEASURED.contractsVerified}{" "}
-            contracts source-verified
+            <span className="blood">●</span> live on creditcoin cc3 · attesting{" "}
+            {SOURCE_CHAIN_LABEL.toLowerCase()} · {MEASURED.contractsVerified} contracts source-verified
           </span>
           <span className="tag">
             frontier ·{" "}

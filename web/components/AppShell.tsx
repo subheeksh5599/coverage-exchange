@@ -137,26 +137,29 @@ function NetworkBanner() {
 }
 
 function LandingHeader() {
-  const path = usePathname();
   const frontier = useFrontier();
   return (
-    <header className="topbar" style={{ display: "flex", position: "sticky" }}>
-      <Link href="/" className="wordmark">
-        COVERAGE<span className="wm-x">/</span>EXCHANGE
-      </Link>
-      <span className="tag-tight" style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-        <span className={frontier.data?.available ? "flick" : "flick loss"}>●</span> cc3 · {CHAIN_ID}
-      </span>
-      <nav className="topnav">
-        <Link href="/dashboard" className={path === "/dashboard" ? "on" : ""}>
-          Console
+    <header className="site-header">
+      <div className="site-header-inner">
+        <Link href="/" className="wordmark">
+          COVERAGE<span className="wm-x">/</span>EXCHANGE
         </Link>
-        <Link href="/market">Market</Link>
-        <Link href="/docs">Docs</Link>
-        <a href="https://github.com/subheeksh5599/coverage-exchange" target="_blank" rel="noreferrer">
-          Source
-        </a>
-      </nav>
+        <span className="tag-tight" style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+          <span className={frontier.data?.available ? "flick" : "flick loss"}>●</span> cc3 · {CHAIN_ID}
+        </span>
+        <nav className="header-nav">
+          <Link href="/dashboard">Console</Link>
+          <Link href="/market">Market</Link>
+          <Link href="/docs">Docs</Link>
+          <a
+            href="https://github.com/subheeksh5599/coverage-exchange"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Source
+          </a>
+        </nav>
+      </div>
     </header>
   );
 }

@@ -1191,7 +1191,7 @@ textarea {
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
-  padding: 130px 28px 0;
+  padding: 96px 28px 28px;
   position: relative;
   overflow: hidden;
 }
@@ -1205,8 +1205,9 @@ textarea {
 }
 
 .hero-title {
-  font-size: clamp(48px, 11.5vw, 190px);
+  font-size: clamp(46px, 11.6vw, 176px);
   user-select: none;
+  letter-spacing: -0.005em;
 }
 
 .hero-title .line {
@@ -1218,7 +1219,7 @@ textarea {
   align-items: flex-end;
   justify-content: space-between;
   gap: 40px;
-  padding: 2.5vw 0 4vw;
+  padding: 2.5vw 0 0;
   flex-wrap: wrap;
 }
 
@@ -1475,4 +1476,56 @@ textarea {
 .mono {
   font-variant-numeric: tabular-nums;
   word-break: break-all;
+}
+
+/* ------------------------------------------------------------- landing header */
+/* Fixed, not sticky: a sticky header occupies layout space, which pushed the
+   min-height:100vh hero 55px past the fold and clipped the hero CTAs. A fixed overlay
+   starts the hero at y=0 (the original design did this) and the hero's own top padding
+   clears it. */
+.site-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 60;
+  border-bottom: 1px solid var(--line-soft);
+  background: color-mix(in srgb, var(--void) 74%, transparent);
+  backdrop-filter: blur(10px);
+}
+
+.site-header-inner {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 16px 28px;
+}
+
+.header-nav {
+  margin-left: auto;
+  display: flex;
+  gap: 26px;
+  flex-wrap: wrap;
+}
+
+.header-nav a {
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--dim);
+  transition: color 0.2s;
+}
+
+.header-nav a:hover,
+.header-nav a.on {
+  color: var(--bone);
+}
+
+/* A 1.5px outline reads as a hairline at display scale, making the emphasised word
+   optically quieter than the solid type around it. Scale the stroke with the type. */
+.hero-title .outline,
+.hero-title .outline-blood,
+.closing-title .outline,
+.closing-title .outline-blood {
+  -webkit-text-stroke-width: clamp(1.5px, 0.013em, 3.5px);
 }
