@@ -1,19 +1,16 @@
 "use client";
 
-// The shell. Two presentations of the same design language:
+// The console shell: a sticky sidebar with the wallet at the top, the live attested frontier,
+// and the numbered nav; the page renders in the main column.
 //
-//   /            the landing — full-bleed, no sidebar, its own header
-//   everything   the console — sticky sidebar with the live frontier, numbered nav,
-//   else         the wallet, and the deployed addresses; main column for the page
-//
-// Ported from the protocol's original frontend so the marketing surface and the
-// application read as one product rather than two.
+// The landing page (`/`) is deliberately NOT wrapped — it brings its own fixed header and
+// full-bleed sections, exactly as the original design had it.
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useWallet } from "@/lib/wallet";
 import { useFrontier } from "@/lib/protocol";
-import { ADDR, CHAIN_ID, EXPLORER_ADDR_BASE, SOURCE_CHAIN_LABEL } from "@/lib/chain";
+import { CHAIN_ID, SOURCE_CHAIN_LABEL } from "@/lib/chain";
 
 const NAV: { href: string; label: string }[] = [
   { href: "/dashboard", label: "Overview" },
@@ -25,20 +22,6 @@ const NAV: { href: string; label: string }[] = [
   { href: "/protocol", label: "Protocol" },
   { href: "/docs", label: "Docs" },
 ];
-
-function AddrLink({ addr, lead = 6 }: { addr: `0x${string}`; lead?: number }) {
-  return (
-    <a
-      className="txlink"
-      href={`${EXPLORER_ADDR_BASE}${addr}`}
-      target="_blank"
-      rel="noreferrer"
-      title={addr}
-    >
-      {addr.slice(0, 2 + lead)}…{addr.slice(-4)}
-    </a>
-  );
-}
 
 /** The attested frontier — the one number that moves while you watch. */
 function FrontierPanel() {
@@ -69,14 +52,19 @@ function FrontierPanel() {
   );
 }
 
-/** Wallet, in the sidebar where the app lives. */
+/** Wallet, at the top of the rail where the work starts. */
 function WalletBlock() {
   const { address, connect, connecting, hasProvider, onCorrectChain, switchToCc3, disconnect } =
     useWallet();
 
   if (!hasProvider) {
     return (
-      <button className="wbtn" type="button" disabled title="Install an EIP-1193 wallet (e.g. MetaMask)">
+      <button
+        className="wbtn"
+        type="button"
+        disabled
+        title="Install an EIP-1193 wallet (e.g. MetaMask) and reload"
+      >
         <span className="dot dot-idle" /> no wallet detected
       </button>
     );
@@ -99,12 +87,15 @@ function WalletBlock() {
   }
 
   return (
-    <>
-      <button className="wbtn" onClick={disconnect} type="button" title={`${address} — click to disconnect`}>
-        <span className="dot dot-ok" />
-        {address.slice(0, 6)}…{address.slice(-4)}
-      </button>
-    </>
+    <button
+      className="wbtn"
+      onClick={disconnect}
+      type="button"
+      title={`${address} — click to disconnect`}
+    >
+      <span className="dot dot-ok" />
+      {address.slice(0, 6)}…{address.slice(-4)}
+    </button>
   );
 }
 
@@ -114,8 +105,9 @@ function NetworkBanner() {
   return (
     <div className="notice n-warn" style={{ marginBottom: 20 }}>
       <div>
-        <strong>Wrong network.</strong> Your wallet is on chain {chainId ?? "unknown"}; this protocol
-        is deployed on Creditcoin CC3 (chain {CHAIN_ID}). Transactions will fail until you switch.{" "}
+        <strong>wrong network.</strong> Your wallet is on chain {chainId ?? "unknown"}; this
+        protocol is deployed on Creditcoin CC3 (chain {CHAIN_ID}). Transactions will fail until you
+        switch.{" "}
         <button
           onClick={switchToCc3}
           type="button"
@@ -136,55 +128,20 @@ function NetworkBanner() {
   );
 }
 
-function LandingHeader() {
-  const frontier = useFrontier();
-  return (
-    <header className="site-header">
-      <div className="site-header-inner">
-        <Link href="/" className="wordmark">
-          COVERAGE<span className="wm-x">/</span>EXCHANGE
-        </Link>
-        <span className="tag-tight" style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-          <span className={frontier.data?.available ? "flick" : "flick loss"}>●</span> cc3 · {CHAIN_ID}
-        </span>
-        <nav className="header-nav">
-          <Link href="/dashboard">Console</Link>
-          <Link href="/market">Market</Link>
-          <Link href="/docs">Docs</Link>
-          <a
-            href="https://github.com/subheeksh5599/coverage-exchange"
-            target="_blank"
-            rel="noreferrer"
-          >
-            Source
-          </a>
-        </nav>
-      </div>
-    </header>
-  );
-}
-
 export function AppShell({ children }: { children: React.ReactNode }) {
   const path = usePathname();
-  const isLanding = path === "/";
 
-  if (isLanding) {
-    return (
-      <>
-        <LandingHeader />
-        {children}
-      </>
-    );
-  }
+  // The landing supplies its own header and layout.
+  if (path === "/") return <>{children}</>;
 
   return (
     <div className="shell">
-      {/* mobile bar */}
-      <div className="topbar" style={{ gridColumn: "1 / -1", display: undefined }}>
+      {/* mobile bar — the sidebar is hidden below 960px */}
+      <div className="console-topbar">
         <Link href="/" className="wordmark">
           COVERAGE<span className="wm-x">/</span>EXCHANGE
         </Link>
-        <nav className="topnav">
+        <nav className="header-nav">
           {NAV.map((n) => (
             <Link key={n.href} href={n.href} className={path === n.href ? "on" : undefined}>
               {n.label}
@@ -200,51 +157,21 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <span className="wordmark-sub">bonded coverage · cc3</span>
           </Link>
 
-          <FrontierPanel />
+          <WalletBlock />
 
-          <Link
-            href="/"
-            className="tag"
-            style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "2px 0" }}
-          >
-            ← back to the landing page
-          </Link>
+          <FrontierPanel />
 
           <nav className="side-nav">
             {NAV.map((n, i) => (
-              <Link
-                key={n.href}
-                href={n.href}
-                className={`side-link${path === n.href ? " on" : ""}`}
-              >
+              <Link key={n.href} href={n.href} className={`side-link${path === n.href ? " on" : ""}`}>
                 <span className="side-link-no">{String(i + 1).padStart(2, "0")}</span>
                 {n.label}
               </Link>
             ))}
+            <Link href="/" className="side-link">
+              <span className="side-link-no">←</span> Landing
+            </Link>
           </nav>
-        </div>
-
-        <div className="shell-side-bottom">
-          <WalletBlock />
-          <span className="tag">deployed · cc3 {CHAIN_ID}</span>
-          <div className="side-contracts">
-            {(
-              [
-                ["engine", ADDR.engine],
-                ["market", ADDR.market],
-                ["challenges", ADDR.challengeManager],
-                ["lending", ADDR.lendingAdapter],
-                ["adapter", ADDR.adapter],
-              ] as const
-            ).map(([name, addr]) => (
-              <div className="stat-row" key={addr}>
-                <span className="stat-k">{name}</span>
-                <span className="stat-v">
-                  <AddrLink addr={addr} />
-                </span>
-              </div>
-            ))}
-          </div>
         </div>
       </aside>
 

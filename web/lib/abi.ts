@@ -17,7 +17,7 @@ export const ERC20_ABI = parseAbi([
   "function faucet(address to, uint256 amount)",
 ]);
 
-export const ENGINE_ABI = parseAbi([
+const ENGINE_ABI_PARSED = parseAbi([
   // reads
   "function TOKEN() view returns (address)",
   "function ADAPTER() view returns (address)",
@@ -36,7 +36,7 @@ export const ENGINE_ABI = parseAbi([
   "function effectiveStatus(uint256 coverageId) view returns (uint8)",
   "function adjudication(uint256) view returns (uint64 chainKey, uint64 startBlock, uint64 endBlock, address predicate, bytes32 predicateParams, address sourceContract, bytes32 eventSignature, uint8 status)",
   "function exposureOf(uint256 coverageId) view returns (uint256, uint256)",
-  "function getCoverage(uint256) view returns (uint256 id, address borrower, address underwriter, uint64 chainKey, uint64 startBlock, uint64 endBlock, uint64 requiredDepth, uint64 liveUntilHeight, uint256 maxExposure, uint256 capacity, uint256 drawn, uint256 bond, uint256 premium, address predicate, bytes32 predicateParams, address sourceContract, bytes32 eventSignature, uint8 status, uint64 createdAtBlock, bytes32 challengeKey)",
+
   // writes — the underwriter capital layer
   "function deposit(uint256 amount)",
   "function withdraw(uint256 amount)",
@@ -61,6 +61,52 @@ export const ENGINE_ABI = parseAbi([
   "error NotAuthorized()",
   "error ZeroAmount()",
 ]);
+
+/**
+ * `getCoverage` is declared as JSON rather than human-readable ABI so its 20 tuple fields keep
+ * their names — callers read `c.borrower`, `c.bond`, `c.status`, and viem only exposes named
+ * properties when the components are named. The human-readable form collapses them to
+ * positional-only access.
+ */
+const GET_COVERAGE = {
+  type: "function",
+  name: "getCoverage",
+  stateMutability: "view",
+  inputs: [{ name: "coverageId", type: "uint256" }],
+  outputs: [
+    {
+      type: "tuple",
+      components: [
+        { name: "id", type: "uint256" },
+        { name: "borrower", type: "address" },
+        { name: "underwriter", type: "address" },
+        { name: "chainKey", type: "uint64" },
+        { name: "startBlock", type: "uint64" },
+        { name: "endBlock", type: "uint64" },
+        { name: "requiredDepth", type: "uint64" },
+        { name: "liveUntilHeight", type: "uint64" },
+        { name: "maxExposure", type: "uint256" },
+        { name: "capacity", type: "uint256" },
+        { name: "drawn", type: "uint256" },
+        { name: "bond", type: "uint256" },
+        { name: "premium", type: "uint256" },
+        { name: "predicate", type: "address" },
+        { name: "predicateParams", type: "bytes32" },
+        { name: "sourceContract", type: "address" },
+        { name: "eventSignature", type: "bytes32" },
+        { name: "status", type: "uint8" },
+        { name: "createdAtBlock", type: "uint64" },
+        { name: "challengeKey", type: "bytes32" },
+      ],
+    },
+  ],
+} as const;
+
+/** The engine ABI as viem consumes it: the parsed human-readable entries plus the JSON
+ *  `getCoverage` fragment that preserves tuple field names for both read layers. */
+export const ENGINE_ABI_FULL = [...ENGINE_ABI_PARSED, GET_COVERAGE] as const;
+
+export const ENGINE_ABI = ENGINE_ABI_FULL;
 
 export const MARKET_ABI = parseAbi([
   "function TOKEN() view returns (address)",
