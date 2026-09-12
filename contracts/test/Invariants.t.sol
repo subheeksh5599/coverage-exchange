@@ -4,7 +4,10 @@ pragma solidity ^0.8.28;
 import {BaseTest} from "./helpers/BaseTest.sol";
 import {ICoverage} from "../src/interfaces/ICoverage.sol";
 import {CoverageEngine} from "../src/CoverageEngine.sol";
+import {CoverageMarket} from "../src/CoverageMarket.sol";
 import {LendingAdapter} from "../src/LendingAdapter.sol";
+import {OfferRegistry} from "../src/OfferRegistry.sol";
+import {ProvenTx} from "./helpers/ProvenTx.sol";
 
 /// @notice Property tests. These are the sentences the protocol must never violate, fuzzed over the
 ///         parameters an attacker controls rather than asserted for one happy path.
@@ -156,5 +159,50 @@ contract InvariantsTest is BaseTest {
         vm.prank(ALICE);
         vm.expectRevert(abi.encodeWithSelector(CoverageEngine.InsufficientFreeBalance.selector, 0, bond));
         market.purchase(p);
+    }
+
+    /// I-16: for any legal split of one aggregated position, `sum(contributor.bond) == position.bond`
+    /// and each contributor's lockedBond increases by their contribution exactly.
+    function testFuzz_I16_AggregatedBondEqualsSumOfContributors(uint96 bondA, uint96 bondB) public {
+        // Both contributors need bond >= their own maxExposure (each covers half the total).
+        bondA = uint96(bound(bondA, 1_000e6, 100_000e6));
+        bondB = uint96(bound(bondB, 1_000e6, 100_000e6));
+
+        address EVE = makeAddr("eveInvariant");
+        token.faucet(EVE, 500_000e6);
+        vm.prank(EVE);
+        token.approve(address(engine), type(uint256).max);
+        vm.prank(EVE);
+        engine.deposit(500_000e6);
+
+        vm.prank(BOB);
+        uint256 idA = offers.publishOffer(
+            ALICE, CHAIN_KEY, DEPTH, uint256(bondA), uint256(bondA),
+            END_BLOCK - START_BLOCK, 0, SOURCE_CONTRACT, ProvenTx.transferTopic(),
+            address(predicateProhibited), bytes32(uint256(uint160(TREASURY))), 0
+        );
+        vm.prank(EVE);
+        uint256 idB = offers.publishOffer(
+            ALICE, CHAIN_KEY, DEPTH, uint256(bondB), uint256(bondB),
+            END_BLOCK - START_BLOCK, 0, SOURCE_CONTRACT, ProvenTx.transferTopic(),
+            address(predicateProhibited), bytes32(uint256(uint160(TREASURY))), 1
+        );
+
+        uint256 lockedBobBefore = engine.lockedBond(BOB);
+        uint256 lockedEveBefore = engine.lockedBond(EVE);
+
+        uint256[] memory ids = new uint256[](2);
+        ids[0] = idA;
+        ids[1] = idB;
+        vm.prank(ALICE);
+        uint256 covId = market.purchaseAggregated(ids, START_BLOCK);
+
+        ICoverage.Coverage memory c = engine.getCoverage(covId);
+        CoverageEngine.Contributor[] memory list = engine.contributorsOf(covId);
+        uint256 sum;
+        for (uint256 i; i < list.length; ++i) sum += list[i].bond;
+        assertEq(sum, c.bond, "I-06: sum(contributor.bond) == position.bond");
+        assertEq(engine.lockedBond(BOB) - lockedBobBefore, uint256(bondA));
+        assertEq(engine.lockedBond(EVE) - lockedEveBefore, uint256(bondB));
     }
 }

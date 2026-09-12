@@ -37,6 +37,13 @@ Three roles, each with a reason to be honest:
 
 The chain adjudicates. There is no DAO vote, no claims adjuster, no admin override — see `INVARIANTS.md` I-09.
 
+Above the primitive sits a **market**: underwriters publish standing offers with tranche and price
+(`OfferRegistry`); borrowers fill one, or aggregate several compatible offers into a single position
+backed by every contributor's bond (`purchaseAggregated`). Premiums respond to **utilization** — a
+lightly-used underwriter is cheaper than one whose book is full — and a **junior** tranche costs more
+and gets slashed first inside an aggregated basket. All of it is deterministic and reproducible; nothing
+is a locally-estimated number.
+
 ## 3. The coverage invariant
 
 A position is valid for exposure `E` if and only if all of these hold, evaluated **at the moment of the draw**:
@@ -83,16 +90,23 @@ Two of those conditions are the whole invention:
                           ┌─────────────▼──────────┐   ┌─────────▼──────────┐
                           │  ChallengeManager      │   │  CoverageEngine    │
                           │  verify → decode →     │──►│  positions, bonds, │
-                          │  predicate → breach    │   │  capacity, validity│
-                          └────────────────────────┘   └─────────┬──────────┘
-                                                                 │
-                          ┌──────────────────┐   ┌───────────────▼──────────┐
-                          │  CoverageMarket  │   │  LendingAdapter          │
-                          │  quote / purchase│   │  draw only if isValid()  │
-                          └──────────────────┘   └──────────────────────────┘
+                          │  predicate → breach    │   │  contributors[],   │
+                          └────────────────────────┘   │  capacity, validity│
+                                                       └─────────┬──────────┘
+   ┌────────────────────┐   ┌──────────────────┐                 │
+   │  OfferRegistry     │──►│  CoverageMarket  │   ┌─────────────▼────────────┐
+   │  publish · fill ·  │   │  quote · purchase│   │  LendingAdapter          │
+   │  cancel · aggregate│   │  offer · basket  │   │  draw only if isValid()  │
+   └────────────────────┘   └──────────────────┘   └──────────────────────────┘
 ```
 
-**Lifecycle.** Underwriter deposits → publishes a price multiplier for a borrower → borrower buys a position (premium to the underwriter, bond locked in the engine) → lender draws while the position is valid → the window closes and the frontier moves past `endBlock + requiredDepth` → either someone proves a counterexample (bond to the challenger, position `BREACHED`, draws frozen) or the position settles and the bond is released.
+**Lifecycle.** Underwriter deposits capacity → publishes one or more offers on `OfferRegistry`
+(exposure, bond, tranche, window length, depth, target borrower or open) → borrower **fills** a single
+offer or **aggregates** several compatible ones (`purchaseAggregated` sums bonds into one position and
+locks each contributor's bond from its own engine deposit) → lender draws while the position is valid →
+the window closes and the frontier moves past `endBlock + requiredDepth` → either someone proves a
+counterexample (each contributor's bond flows to the challenger, junior first, in one transaction;
+position `BREACHED`; draws frozen) or the position settles and every contributor's bond is released.
 
 **Expiry is computed, not scheduled.** Nothing flips a position to `EXPIRED`; `effectiveStatus()` derives it from the attested frontier on every read, so there is no keeper to bribe, forget or front-run.
 
@@ -243,10 +257,10 @@ Honest reading: this is a **30% saving, not a 100× one**. The batch overload sh
 
 ```
 $ cd contracts && forge test
-48 tests passed, 0 failed, 0 skipped
+71 tests passed, 0 failed, 0 skipped
 ```
 
-Including the full counterexample suite A–H, the lookalike-emitter case, the reverted-source-transaction case, replay scoping, the challenger race, expiry, and fail-closed behaviour when the frontier is unreachable.
+Including the full counterexample suite A–H, the lookalike-emitter case, the reverted-source-transaction case, replay scoping, the challenger race, expiry, fail-closed behaviour when the frontier is unreachable, plus the market-layer suite: `OfferRegistry` (10), `Aggregation` (6), `DynamicPricing` (4), and invariant I-16 for aggregated bond conservation.
 
 **One limitation stated plainly:** the unit tests run against precompile *doubles* etched at the real addresses, because the protocol's verification is performed by the node, not by EVM bytecode. Those doubles prove this protocol's logic, not Attestcoin's cryptography. The cryptography is proven by the live check above, which calls the real node.
 
@@ -257,18 +271,20 @@ Including the full counterexample suite A–H, the lookalike-emitter case, the r
 | Piece | State |
 |---|---|
 | Attestcoin adapter (frontier + inclusion + batch) | built, compiles, exercised |
-| Coverage engine (positions, bond locking, capacity, validity, settlement) | built, tested |
-| Challenge manager (verify → decode → predicate → breach → pay) | built, tested |
+| Coverage engine (positions, bond locking, capacity, validity, settlement, **multi-contributor**) | built, tested |
+| Challenge manager (verify → decode → predicate → breach → pay each contributor) | built, tested |
 | Three predicate modules (prohibited recipient, amount ceiling, amount floor) | built, tested |
-| Coverage market (deterministic risk-priced quotes, purchase, capacity) | built, tested |
+| Coverage market (base × duration × depth × counterparty × **utilization** × **tranche**) | built, tested |
+| Offer registry (competing underwriters: publish · cancel · list · fill · aggregate) | built, tested |
+| Risk tranches (senior / junior; junior costs more and is slashed first in a basket) | built, tested |
 | Lending adapter (draw gating, exposure accounting, repayment) | built, tested |
 | Deploy + deployment-verification scripts | executed — deployment live; verification is RPC-based (see below) |
 | Keyless live Attestcoin verification | **executed against CC3 testnet, 7/7** |
 | Continuity benchmark | **measured against CC3 testnet** |
-| Deployment on CC3 testnet | **live** — 9 contracts, verified 19/19 by `verify-deployment.mjs` |
+| Deployment on CC3 testnet | **live** — 9 contracts, verified 19/19 by `verify-deployment.mjs`. The `OfferRegistry` predates this deployment; the UI detects it and shows the exact redeploy command |
 | Full mechanism run live | **done** — breach + slash and settlement, `worker/evidence/demo-run.json` |
 | Demo video, deck, submission form | not started (human deliverables) |
-| Frontend | `web/` — a transactional client that operates the protocol: connect, buy coverage, provide capacity, draw, repay, settle, challenge. Every write goes through simulate → sign → wait-for-receipt; every read is a contract call. Addresses generated from `evidence.json`, guarded by two CI checks (see below) |
+| Frontend | `web/` — a transactional client that operates the protocol: connect wallet, faucet, publish/cancel offer, fill or aggregate offers, buy coverage, provide capacity, draw, repay, settle, challenge. Every write goes through simulate → sign → wait-for-receipt; every read is a contract call. Addresses generated from `evidence.json`, guarded by two CI checks (see below) |
 
 `worker/evidence/` holds the raw output of every live run shown above: `live-precompile.json`,
 `continuity-benchmark.json`, `deployment-verification.json`, `source-evidence.json` and `demo-run.json`.
@@ -328,11 +344,12 @@ contracts/                      Foundry project (Solidity 0.8.30, via_ir)
     CoverageMarket.sol          pricing curve, purchase, capacity offers
     ChallengeManager.sol        adjudication: proof → decode → predicate → breach
     LendingAdapter.sol          draw gating + exposure accounting
+    OfferRegistry.sol           competing underwriter offers + aggregation
     DemoToken.sol               testnet-only 6-decimal demo asset with a faucet
     interfaces/                 vendored Attestcoin ABIs (provenance in file headers)
     lib/EvmV1Decoder.sol        vendored protocol decoder, byte-identical
     predicates/                 the three invariant modules + shared emitter gate
-  test/                         48 tests: lifecycle, attack matrix, state machine, invariants, predicates
+  test/                         71 tests: lifecycle, attack matrix, state machine, invariants, predicates, offer registry, aggregation, dynamic pricing
   script/                       Deploy.s.sol, VerifyDeployment.s.sol
 worker/                         proof pipeline, challenger watcher, live verification, benchmark
 web/                            Next.js app — landing (/) and the console (/dashboard), reading CC3 live
@@ -352,7 +369,7 @@ INVARIANTS.md  SECURITY.md      the numbered invariants and the threat model
 cd contracts
 forge install            # forge-std + openzeppelin-contracts
 forge build
-forge test               # 48 tests
+forge test               # 71 tests
 
 # 2. live Attestcoin verification, keyless (network required)
 cd ../worker
@@ -384,20 +401,21 @@ FOUNDRY_PROFILE=live forge script script/Deploy.s.sol:Deploy \
 Stated here rather than discovered by a reviewer:
 
 - **A predicate sees one proven transaction.** It cannot read source-chain state, cannot sum history and cannot compare two transactions. Every invariant is therefore a statement about one decoded receipt. See `SECURITY.md` §"What a predicate cannot see".
-- **Not deployed.** No addresses, no transactions, no demo video yet.
 - **Coverage windows are relative to the attestation frontier.** A position bought over a window the frontier has already passed is expired on arrival; the grace band is configurable (`defaultGraceBlocks`, currently 10,000 source blocks).
-- **Compression is 22–30%, not orders of magnitude** and not a fixed multiplier: 30.1% measured over 5
-  claims, 22.5% over 10, depending on how many continuity roots the proofs need (both runs in
-  `docs/GAS.md`).
-- **The pricing curve is deterministic and documented, not a market.** Underwriters set a per-borrower multiplier and the curve prices window length and depth. Competing underwriters on price is the obvious next step and is deliberately not claimed as done.
-- **The interface now transacts.** `web/` connects a wallet and sends real transactions — buy coverage,
-  deposit capacity, draw, repay, settle and challenge all execute against the deployed contracts from the
-  browser. What it still does not do: publish standing underwriter offers (an underwriter prices a borrower,
-  but cannot yet list fixed windows and depths), and automatically search for counterexamples — the
-  challenger supplies the source transaction. Both are named as roadmap rather than implied.
-- **The market layer is a pricing curve, not an order book** — underwriters cannot yet compete on price.
-  Named as roadmap rather than implied by the name `Coverage Exchange` (`docs/ROADMAP.md`).
+- **Compression is 22–30%, not orders of magnitude** and not a fixed multiplier: 30.1% measured over 5 claims, 22.5% over 10, depending on how many continuity roots the proofs need (both runs in `docs/GAS.md`).
+- **The challenger supplies the counterexample.** `web/` fetches the inclusion proof from the public prover and simulates the challenge for free, but the source transaction hash comes from the user. Automated counterexample search is out of scope for this deployment.
+- **The recorded 2026-09-10 CC3 deployment predates the market-layer contracts** (`OfferRegistry`, aggregated positions, utilization pricing, tranches). The code, tests and deploy script are all in the repo; the `/offers` UI detects the missing registry and shows the exact redeploy command. Any change that touches `CoverageEngine` invalidates the recorded addresses, the explorer verification and the demo evidence — the sequencing rule in `docs/ROADMAP.md` covers this.
+- **Mainnet is not deployed.** By design at this stage: CC3 testnet is the target of this build.
 
-## 12. Licence
+## 12. Non-goals
+
+These are not roadmap items — they are decisions with mechanism-level reasons. Building any of them would
+weaken the invariant, not extend it. Reasons live in `SECURITY.md` and `docs/ROADMAP.md`; in one line each:
+
+- **Transferable coverage** — breaks the counterparty binding at the moment of the draw.
+- **Governance token** — adds a second claim on the value the bond already secures.
+- **Protocol fee on seized bonds** — reduces the only economic force standing between a false claim and a paid-out loan.
+
+## 13. Licence
 
 MIT for this project's code. Vendored files retain their upstream MIT terms and say so in their headers.

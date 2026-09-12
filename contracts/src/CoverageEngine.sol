@@ -30,6 +30,20 @@ contract CoverageEngine is ICoverage, Ownable, ReentrancyGuard {
 
     uint16 public constant BPS = 10_000;
 
+    uint8 public constant TRANCHE_SENIOR = 0;
+    uint8 public constant TRANCHE_JUNIOR = 1;
+
+    /// @dev A capacity provider for one coverage position. A single-underwriter position stores one
+    ///      entry; an aggregated position stores several, and their bonds are locked and released
+    ///      independently. Junior tranches lose accounting priority on breach (paid to challenger
+    ///      first), which is only observable through the emitted ContributorSlashed events since
+    ///      the total bond leaves in one transfer.
+    struct Contributor {
+        address underwriter;
+        uint256 bond;
+        uint8 tranche;
+    }
+
     IERC20 public immutable TOKEN;
     AttestcoinAdapter public immutable ADAPTER;
 
@@ -48,12 +62,16 @@ contract CoverageEngine is ICoverage, Ownable, ReentrancyGuard {
     uint256 public nextCoverageId = 1;
 
     mapping(uint256 => Coverage) private _coverages;
+    mapping(uint256 => Contributor[]) private _contributors;
     mapping(address => uint256) public underwriterBalance;
     mapping(address => uint256) public lockedBond;
 
     event CoverageCreated(uint256 indexed coverageId, address indexed borrower, address indexed underwriter);
     event CoverageConsumed(uint256 indexed coverageId, address indexed borrower, uint256 amount);
     event CoverageBreached(uint256 indexed coverageId, bytes32 challengeKey, address indexed challenger);
+    event ContributorSlashed(
+        uint256 indexed coverageId, address indexed underwriter, uint256 bond, uint8 tranche
+    );
     event CoverageSettled(uint256 indexed coverageId, address indexed underwriter, uint256 bondReleased);
     event UnderwriterDeposited(address indexed underwriter, uint256 amount);
     event UnderwriterWithdrew(address indexed underwriter, uint256 amount);
@@ -72,6 +90,9 @@ contract CoverageEngine is ICoverage, Ownable, ReentrancyGuard {
     error AlreadyTerminal(Status status);
     error NotExpiredYet(Status status);
     error DrawingFrozen(Reason reason);
+    error NoContributors();
+    error BadTranche(uint8 tranche);
+    error ContributorBondMismatch(uint256 sum, uint256 declared);
 
     constructor(IERC20 token, AttestcoinAdapter adapter) Ownable(msg.sender) {
         if (address(token) == address(0) || address(adapter) == address(0)) revert ZeroAddress();
@@ -149,21 +170,62 @@ contract CoverageEngine is ICoverage, Ownable, ReentrancyGuard {
     // --------------------------------------------------------------------------- position creation
 
     /// @notice Create a coverage position. Called by the market, which has already collected the
-    ///         premium and validated the quote.
+    ///         premium and validated the quote. Shim: the position has one SENIOR contributor whose
+    ///         bond is the whole bond — indistinguishable from the aggregated case at rest, so the
+    ///         breach/settle code has one path.
     function createCoverage(CreateParams calldata p) external onlyMarket returns (uint256 id) {
-        if (p.startBlock >= p.endBlock) revert InvalidWindow();
-        if (p.borrower == address(0) || p.underwriter == address(0) || p.predicate == address(0)) {
-            revert ZeroAddress();
+        if (p.underwriter == address(0)) revert ZeroAddress();
+        Contributor[] memory one = new Contributor[](1);
+        one[0] = Contributor({underwriter: p.underwriter, bond: p.bond, tranche: TRANCHE_SENIOR});
+        id = _createCoverage(p, one);
+    }
+
+    /// @notice Create a position backed by several underwriters, each contributing part of the bond
+    ///         and either the SENIOR or JUNIOR tranche. `p.underwriter` MUST be address(0) — the
+    ///         position has no single author — and `p.bond` MUST equal the sum of contributor bonds.
+    function createAggregatedCoverage(CreateParams calldata p, Contributor[] calldata contributors)
+        external
+        onlyMarket
+        returns (uint256 id)
+    {
+        if (p.underwriter != address(0)) revert ZeroAddress();
+        if (contributors.length == 0) revert NoContributors();
+
+        uint256 sum;
+        for (uint256 i; i < contributors.length; ++i) {
+            if (contributors[i].underwriter == address(0)) revert ZeroAddress();
+            if (contributors[i].tranche > TRANCHE_JUNIOR) revert BadTranche(contributors[i].tranche);
+            sum += contributors[i].bond;
         }
+        if (sum != p.bond) revert ContributorBondMismatch(sum, p.bond);
+
+        id = _createCoverage(p, _copyToMemory(contributors));
+    }
+
+    function _copyToMemory(Contributor[] calldata src) internal pure returns (Contributor[] memory out) {
+        out = new Contributor[](src.length);
+        for (uint256 i; i < src.length; ++i) out[i] = src[i];
+    }
+
+    /// @dev Shared post-validation body. Every contributor's bond is locked in the same pass, so a
+    ///      contributor whose free balance is short reverts the whole creation atomically.
+    function _createCoverage(CreateParams calldata p, Contributor[] memory contributors)
+        internal
+        returns (uint256 id)
+    {
+        if (p.startBlock >= p.endBlock) revert InvalidWindow();
+        if (p.borrower == address(0) || p.predicate == address(0)) revert ZeroAddress();
         if (p.capacity < p.maxExposure) revert CapacityBelowExposure(p.capacity, p.maxExposure);
 
         uint256 requiredBond = (p.maxExposure * coverageRatioBps) / BPS;
         if (p.bond < requiredBond) revert BondBelowExposure(p.bond, requiredBond);
 
-        if (freeBalance(p.underwriter) < p.bond) {
-            revert InsufficientFreeBalance(freeBalance(p.underwriter), p.bond);
+        for (uint256 i; i < contributors.length; ++i) {
+            address u = contributors[i].underwriter;
+            uint256 b = contributors[i].bond;
+            if (freeBalance(u) < b) revert InsufficientFreeBalance(freeBalance(u), b);
+            lockedBond[u] += b;
         }
-        lockedBond[p.underwriter] += p.bond;
 
         id = nextCoverageId++;
         // Fields are written one at a time rather than as one struct literal: a 17-field literal
@@ -191,6 +253,9 @@ contract CoverageEngine is ICoverage, Ownable, ReentrancyGuard {
         c.createdAtBlock = uint64(block.number);
         c.challengeKey = bytes32(0);
 
+        Contributor[] storage cs = _contributors[id];
+        for (uint256 i; i < contributors.length; ++i) cs.push(contributors[i]);
+
         emit CoverageCreated(id, p.borrower, p.underwriter);
     }
 
@@ -215,11 +280,26 @@ contract CoverageEngine is ICoverage, Ownable, ReentrancyGuard {
         c.status = Status.BREACHED;
         c.challengeKey = challengeKey;
 
-        uint256 bond = c.bond;
-        lockedBond[c.underwriter] -= bond;
-        underwriterBalance[c.underwriter] -= bond;
-        if (bond > 0) {
-            TOKEN.safeTransfer(challenger, bond);
+        // JUNIOR tranches are slashed before SENIOR in the accounting pass — the total bond leaves
+        // in a single transfer to the challenger, so ordering only shows up in per-contributor
+        // events, but downstream reporting depends on it.
+        Contributor[] storage cs = _contributors[coverageId];
+        uint256 n = cs.length;
+        uint256 totalBond;
+        for (uint8 pass = TRANCHE_JUNIOR;; --pass) {
+            for (uint256 i; i < n; ++i) {
+                Contributor storage k = cs[i];
+                if (k.tranche != pass) continue;
+                lockedBond[k.underwriter] -= k.bond;
+                underwriterBalance[k.underwriter] -= k.bond;
+                totalBond += k.bond;
+                emit ContributorSlashed(coverageId, k.underwriter, k.bond, k.tranche);
+            }
+            if (pass == TRANCHE_SENIOR) break;
+        }
+
+        if (totalBond > 0) {
+            TOKEN.safeTransfer(challenger, totalBond);
         }
 
         emit CoverageBreached(coverageId, challengeKey, challenger);
@@ -246,10 +326,13 @@ contract CoverageEngine is ICoverage, Ownable, ReentrancyGuard {
         }
 
         c.status = Status.SETTLED;
-        uint256 bond = c.bond;
-        lockedBond[c.underwriter] -= bond;
+        uint256 released = c.bond;
+        Contributor[] storage cs = _contributors[coverageId];
+        for (uint256 i; i < cs.length; ++i) {
+            lockedBond[cs[i].underwriter] -= cs[i].bond;
+        }
 
-        emit CoverageSettled(coverageId, c.underwriter, bond);
+        emit CoverageSettled(coverageId, c.underwriter, released);
     }
 
     // ------------------------------------------------------------------------------- consumption
@@ -370,5 +453,19 @@ contract CoverageEngine is ICoverage, Ownable, ReentrancyGuard {
         if (c.id == 0) revert UnknownCoverage(coverageId);
         drawn = c.drawn;
         remaining = c.maxExposure - c.drawn;
+    }
+
+    function contributorsOf(uint256 coverageId) external view returns (Contributor[] memory list) {
+        Coverage storage c = _coverages[coverageId];
+        if (c.id == 0) revert UnknownCoverage(coverageId);
+        Contributor[] storage cs = _contributors[coverageId];
+        list = new Contributor[](cs.length);
+        for (uint256 i; i < cs.length; ++i) list[i] = cs[i];
+    }
+
+    function contributorCount(uint256 coverageId) external view returns (uint256) {
+        Coverage storage c = _coverages[coverageId];
+        if (c.id == 0) revert UnknownCoverage(coverageId);
+        return _contributors[coverageId].length;
     }
 }

@@ -37,6 +37,10 @@ const ENGINE_ABI_PARSED = parseAbi([
   "function adjudication(uint256) view returns (uint64 chainKey, uint64 startBlock, uint64 endBlock, address predicate, bytes32 predicateParams, address sourceContract, bytes32 eventSignature, uint8 status)",
   "function exposureOf(uint256 coverageId) view returns (uint256, uint256)",
 
+  // aggregated positions — a position may be backed by many underwriters (SENIOR/JUNIOR tranches)
+  "function contributorCount(uint256 coverageId) view returns (uint256)",
+  "function contributorsOf(uint256 coverageId) view returns ((address underwriter, uint256 bond, uint8 tranche)[])",
+
   // writes — the underwriter capital layer
   "function deposit(uint256 amount)",
   "function withdraw(uint256 amount)",
@@ -45,6 +49,7 @@ const ENGINE_ABI_PARSED = parseAbi([
   "event CoverageCreated(uint256 indexed coverageId, address indexed borrower, address indexed underwriter)",
   "event CoverageConsumed(uint256 indexed coverageId, address indexed borrower, uint256 amount)",
   "event CoverageBreached(uint256 indexed coverageId, bytes32 challengeKey, address indexed challenger)",
+  "event ContributorSlashed(uint256 indexed coverageId, address indexed underwriter, uint256 bond, uint8 tranche)",
   "event CoverageSettled(uint256 indexed coverageId, address indexed underwriter, uint256 bondReleased)",
   "event UnderwriterDeposited(address indexed underwriter, uint256 amount)",
   "event UnderwriterWithdrew(address indexed underwriter, uint256 amount)",
@@ -60,6 +65,9 @@ const ENGINE_ABI_PARSED = parseAbi([
   "error DrawingFrozen(uint8 reason)",
   "error NotAuthorized()",
   "error ZeroAmount()",
+  "error NoContributors()",
+  "error BadTranche(uint8 tranche)",
+  "error ContributorBondMismatch(uint256 sum, uint256 declared)",
 ]);
 
 /**
@@ -111,18 +119,56 @@ export const ENGINE_ABI = ENGINE_ABI_FULL;
 export const MARKET_ABI = parseAbi([
   "function TOKEN() view returns (address)",
   "function ENGINE() view returns (address)",
+  "function offerRegistry() view returns (address)",
   "function quote(uint256 maxExposure, uint64 windowBlocks, uint64 requiredDepth, address underwriter, address borrower) view returns (uint256)",
+  "function quoteTranche(uint256 maxExposure, uint64 windowBlocks, uint64 requiredDepth, address underwriter, address borrower, uint8 tranche) view returns (uint256)",
+  "function utilizationMultiplierBps(address underwriter) view returns (uint16)",
   "function durationMultiplierBps(uint64 windowBlocks) view returns (uint16)",
   "function depthMultiplierBps(uint64 requiredDepth) view returns (uint16)",
   "function counterpartyMultiplierBps(address underwriter, address borrower) view returns (uint16)",
-  "function curve() view returns (uint16 baseRateBps, uint16 durationBaseBps, uint16 durationPerBlockBps, uint16 durationCapBps, uint16 depthBaseBps, uint16 depthPerBlockBps, uint16 depthCapBps)",
+  "function curve() view returns (uint16 baseRateBps, uint16 durationBaseBps, uint16 durationPerBlockBps, uint16 durationCapBps, uint16 depthBaseBps, uint16 depthPerBlockBps, uint16 depthCapBps, uint16 trancheJuniorMultiplierBps, uint16 utilBaseBps, uint16 utilPerBpsUtilBps, uint16 utilCapBps)",
   "function purchase((address borrower, address underwriter, uint64 chainKey, uint64 startBlock, uint64 endBlock, uint64 requiredDepth, uint256 maxExposure, uint256 capacity, uint256 bond, uint256 premium, address predicate, bytes32 predicateParams, address sourceContract, bytes32 eventSignature)) returns (uint256)",
+  "function purchaseOffer(uint256 offerId, uint64 startBlock) returns (uint256)",
+  "function purchaseAggregated(uint256[] offerIds, uint64 startBlock) returns (uint256)",
   "function setCounterpartyMultiplier(address borrower, uint16 bps)",
+  "function setOfferRegistry(address registry)",
   "event CoveragePurchased(uint256 indexed coverageId, address indexed borrower, address indexed underwriter, uint256 premium, uint256 bond)",
   "event CounterpartyMultiplierSet(address indexed underwriter, address indexed borrower, uint16 bps)",
   "error NotTheCounterparty()",
   "error ZeroAddress()",
   "error MultiplierOutOfRange()",
+  "error OfferRegistryAlreadySet()",
+  "error OfferRegistryNotSet()",
+  "error OfferUnavailable()",
+  "error OfferExpired()",
+  "error EmptyBasket()",
+  "error OffersDoNotAggregate()",
+  "error ContributorMisreported()",
+]);
+
+export const OFFER_REGISTRY_ABI = parseAbi([
+  "function OWNER() view returns (address)",
+  "function market() view returns (address)",
+  "function nextOfferId() view returns (uint256)",
+  "function activeOfferCount() view returns (uint256)",
+  "function getOffer(uint256 id) view returns ((uint256 id, address underwriter, address borrower, uint64 chainKey, uint64 requiredDepth, uint256 maxExposure, uint256 bond, uint64 windowBlocks, uint64 expiresAt, address sourceContract, bytes32 eventSignature, address predicate, bytes32 predicateParams, uint8 tranche, bool cancelled, bool filled))",
+  "function listActiveOffers() view returns ((uint256 id, address underwriter, address borrower, uint64 chainKey, uint64 requiredDepth, uint256 maxExposure, uint256 bond, uint64 windowBlocks, uint64 expiresAt, address sourceContract, bytes32 eventSignature, address predicate, bytes32 predicateParams, uint8 tranche, bool cancelled, bool filled)[])",
+  "function publishOffer(address borrower, uint64 chainKey, uint64 requiredDepth, uint256 maxExposure, uint256 bond, uint64 windowBlocks, uint64 expiresAt, address sourceContract, bytes32 eventSignature, address predicate, bytes32 predicateParams, uint8 tranche) returns (uint256)",
+  "function cancelOffer(uint256 id)",
+  "function setMarket(address market_)",
+  "event OfferPublished(uint256 indexed id, address indexed underwriter, address indexed borrower)",
+  "event OfferCancelled(uint256 indexed id)",
+  "event OfferFilled(uint256 indexed id, uint256 indexed coverageId)",
+  "event MarketWired(address market)",
+  "error NotAuthorized()",
+  "error MarketAlreadyWired()",
+  "error ZeroAddress()",
+  "error UnknownOffer(uint256 id)",
+  "error OfferCancelledError(uint256 id)",
+  "error OfferAlreadyFilled(uint256 id)",
+  "error OfferExpired(uint256 id)",
+  "error BadTranche(uint8 tranche)",
+  "error BadOffer()",
 ]);
 
 export const LENDING_ABI = parseAbi([
@@ -177,4 +223,5 @@ export const DECODE_ERRORS = [
   ...MARKET_ABI,
   ...LENDING_ABI,
   ...CHALLENGE_ABI,
+  ...OFFER_REGISTRY_ABI,
 ] as const;

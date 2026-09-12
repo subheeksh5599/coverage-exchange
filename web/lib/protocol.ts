@@ -11,12 +11,21 @@ import {
   ADAPTER_ABI,
   LENDING_ABI,
   MARKET_ABI,
+  OFFER_REGISTRY_ABI,
   ERC20_ABI,
   STATUS_NAMES,
   REASON_NAMES,
   SOURCE_CHAIN_KEY,
   TOKEN_DECIMALS,
 } from "./chain";
+
+const ZERO_ADDR = "0x0000000000000000000000000000000000000000";
+
+/** True when a real OfferRegistry has been wired on this chain. Guards the offer UI so it
+ *  degrades to a "not deployed" notice instead of blasting reverts at the zero address. */
+export function offerRegistryDeployed(): boolean {
+  return ADDR.offerRegistry !== ZERO_ADDR;
+}
 import { publicClient } from "./wallet";
 import { usePoll } from "./usePoll";
 import { latestBlock, scanContractEvents, spanFrom } from "./logs";
@@ -344,6 +353,80 @@ export function useQuote(
       };
     },
     [maxExposure.toString(), windowBlocks.toString(), requiredDepth.toString(), underwriter, borrower]
+  );
+}
+
+export type Offer = {
+  id: bigint;
+  underwriter: `0x${string}`;
+  borrower: `0x${string}`;
+  chainKey: bigint;
+  requiredDepth: bigint;
+  maxExposure: bigint;
+  bond: bigint;
+  windowBlocks: bigint;
+  expiresAt: bigint;
+  sourceContract: `0x${string}`;
+  eventSignature: `0x${string}`;
+  predicate: `0x${string}`;
+  predicateParams: `0x${string}`;
+  tranche: number;
+  cancelled: boolean;
+  filled: boolean;
+};
+
+/** Every active offer on the registry. Empty (and non-erroring) when the registry is not
+ *  deployed on the connected chain — the UI reads `offerRegistryDeployed()` for the copy. */
+export function useOffers() {
+  return usePoll(async () => {
+    if (!offerRegistryDeployed()) return [] as Offer[];
+    const raw = (await publicClient.readContract({
+      address: ADDR.offerRegistry,
+      abi: OFFER_REGISTRY_ABI,
+      functionName: "listActiveOffers",
+    })) as readonly Record<string, unknown>[];
+    return raw.map((o) => ({
+      id: B(o.id),
+      underwriter: o.underwriter as `0x${string}`,
+      borrower: o.borrower as `0x${string}`,
+      chainKey: B(o.chainKey),
+      requiredDepth: B(o.requiredDepth),
+      maxExposure: B(o.maxExposure),
+      bond: B(o.bond),
+      windowBlocks: B(o.windowBlocks),
+      expiresAt: B(o.expiresAt),
+      sourceContract: o.sourceContract as `0x${string}`,
+      eventSignature: o.eventSignature as `0x${string}`,
+      predicate: o.predicate as `0x${string}`,
+      predicateParams: o.predicateParams as `0x${string}`,
+      tranche: Number(o.tranche),
+      cancelled: Boolean(o.cancelled),
+      filled: Boolean(o.filled),
+    }));
+  }, []);
+}
+
+/** Quote for one offer at a given startBlock — the exact premium `purchaseOffer` will require. */
+export function useOfferQuote(offer: Offer | null, borrower: `0x${string}` | null) {
+  return usePoll(
+    async () => {
+      if (!offer || !borrower) return null;
+      const premium = (await publicClient.readContract({
+        address: ADDR.market,
+        abi: MARKET_ABI,
+        functionName: "quoteTranche",
+        args: [
+          offer.maxExposure,
+          offer.windowBlocks,
+          offer.requiredDepth,
+          offer.underwriter,
+          borrower,
+          offer.tranche,
+        ],
+      })) as bigint;
+      return { premium: B(premium) };
+    },
+    [offer?.id.toString() ?? "", borrower]
   );
 }
 

@@ -6,7 +6,7 @@
 
 import { useCallback, useMemo } from "react";
 import { parseUnits, type Abi } from "viem";
-import { ADDR, CHALLENGE_ABI, ENGINE_ABI, ERC20_ABI, LENDING_ABI, MARKET_ABI } from "./chain";
+import { ADDR, CHALLENGE_ABI, ENGINE_ABI, ERC20_ABI, LENDING_ABI, MARKET_ABI, OFFER_REGISTRY_ABI } from "./chain";
 import { send, ensureAllowance, type SendResult } from "./tx";
 import { publicClient, useWallet } from "./wallet";
 import { TOKEN_DECIMALS } from "./chain";
@@ -247,6 +247,121 @@ export function useActions() {
 
       withdrawLiquidity: (amountWhole: string) =>
         call(LENDING_ABI, ADDR.lendingAdapter, "withdrawLiquidity", [toUnits(amountWhole)]),
+
+      // -------------------------------------------------------------------- offer registry
+      // Registry-driven offers: an underwriter publishes terms, a borrower fills or
+      // aggregates several. The registry stores no capital; the bond still locks from the
+      // underwriter's engine deposit at the moment `purchaseOffer` is executed.
+
+      publishOffer: (o: {
+        borrower: `0x${string}`;
+        chainKey: bigint;
+        requiredDepth: bigint;
+        maxExposure: bigint;
+        bond: bigint;
+        windowBlocks: bigint;
+        expiresAt: bigint;
+        sourceContract: `0x${string}`;
+        eventSignature: `0x${string}`;
+        predicate: `0x${string}`;
+        predicateParams: `0x${string}`;
+        tranche: number;
+      }) =>
+        call(OFFER_REGISTRY_ABI, ADDR.offerRegistry, "publishOffer", [
+          o.borrower,
+          o.chainKey,
+          o.requiredDepth,
+          o.maxExposure,
+          o.bond,
+          o.windowBlocks,
+          o.expiresAt,
+          o.sourceContract,
+          o.eventSignature,
+          o.predicate,
+          o.predicateParams,
+          o.tranche,
+        ]),
+
+      cancelOffer: (offerId: bigint) =>
+        call(OFFER_REGISTRY_ABI, ADDR.offerRegistry, "cancelOffer", [offerId]),
+
+      /** Fill a single offer. Fetches the exact premium the market will require, approves it, then purchases. */
+      purchaseOffer: (offerId: bigint, startBlock: bigint) =>
+        (async (): Promise<SendResult> => {
+          const g = guard();
+          if (g) return g;
+          const offer = (await publicClient.readContract({
+            address: ADDR.offerRegistry,
+            abi: OFFER_REGISTRY_ABI,
+            functionName: "getOffer",
+            args: [offerId],
+          })) as Record<string, unknown>;
+          const premium = (await publicClient.readContract({
+            address: ADDR.market,
+            abi: MARKET_ABI,
+            functionName: "quoteTranche",
+            args: [
+              offer.maxExposure as bigint,
+              offer.windowBlocks as bigint,
+              offer.requiredDepth as bigint,
+              offer.underwriter as `0x${string}`,
+              address!,
+              offer.tranche as number,
+            ],
+          })) as bigint;
+          const a = await ensureAllowance(
+            walletClient!,
+            address!,
+            ADDR.token,
+            ADDR.market,
+            premium,
+            ERC20_ABI,
+            allowanceOf(ADDR.market)
+          );
+          if (!a.ok) return a;
+          return call(MARKET_ABI, ADDR.market, "purchaseOffer", [offerId, startBlock]);
+        })(),
+
+      /** Aggregate several compatible offers into one position backed by all their bonds. */
+      purchaseAggregated: (offerIds: bigint[], startBlock: bigint) =>
+        (async (): Promise<SendResult> => {
+          const g = guard();
+          if (g) return g;
+          let sum = 0n;
+          for (const id of offerIds) {
+            const offer = (await publicClient.readContract({
+              address: ADDR.offerRegistry,
+              abi: OFFER_REGISTRY_ABI,
+              functionName: "getOffer",
+              args: [id],
+            })) as Record<string, unknown>;
+            const premium = (await publicClient.readContract({
+              address: ADDR.market,
+              abi: MARKET_ABI,
+              functionName: "quoteTranche",
+              args: [
+                offer.maxExposure as bigint,
+                offer.windowBlocks as bigint,
+                offer.requiredDepth as bigint,
+                offer.underwriter as `0x${string}`,
+                address!,
+                offer.tranche as number,
+              ],
+            })) as bigint;
+            sum += premium;
+          }
+          const a = await ensureAllowance(
+            walletClient!,
+            address!,
+            ADDR.token,
+            ADDR.market,
+            sum,
+            ERC20_ABI,
+            allowanceOf(ADDR.market)
+          );
+          if (!a.ok) return a;
+          return call(MARKET_ABI, ADDR.market, "purchaseAggregated", [offerIds, startBlock]);
+        })(),
 
       // --------------------------------------------------------------------- adjudication
 

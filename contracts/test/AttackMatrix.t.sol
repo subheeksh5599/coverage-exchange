@@ -7,6 +7,7 @@ import {CoverageEngine} from "../src/CoverageEngine.sol";
 import {CoverageMarket} from "../src/CoverageMarket.sol";
 import {LendingAdapter} from "../src/LendingAdapter.sol";
 import {ChallengeManager} from "../src/ChallengeManager.sol";
+import {OfferRegistry} from "../src/OfferRegistry.sol";
 import {ProvenTx} from "./helpers/ProvenTx.sol";
 
 /// @notice The adversary. Every test here is an attempt to make the protocol do something it should
@@ -350,6 +351,72 @@ contract AttackMatrixTest is BaseTest {
             id, CHAIN_KEY, START_BLOCK + 10, evidence, dummyMerkleProof(), dummyContinuityProof()
         );
         assertFalse(stillBreaches, "already breached: preflight reports no further breach");
+    }
+
+    // ------------------------------------------------------------------ offer + aggregation attacks
+
+    /// @notice Accepting an offer that has been cancelled is refused: the market re-reads the
+    ///         registry so a stale UI cannot slip a purchase past the cancel.
+    function test_CancelledOfferCannotBeAccepted() public {
+        vm.prank(BOB);
+        uint256 offerId = offers.publishOffer(
+            ALICE,
+            CHAIN_KEY,
+            DEPTH,
+            EXPOSURE,
+            BOND,
+            END_BLOCK - START_BLOCK,
+            0,
+            SOURCE_CONTRACT,
+            ProvenTx.transferTopic(),
+            address(predicateProhibited),
+            bytes32(uint256(uint160(TREASURY))),
+            0
+        );
+        vm.prank(BOB);
+        offers.cancelOffer(offerId);
+
+        vm.prank(ALICE);
+        vm.expectRevert(CoverageMarket.OfferUnavailable.selector);
+        market.purchaseOffer(offerId, START_BLOCK);
+    }
+
+    /// @notice An aggregated purchase where one contributor's bond overstates their free balance is
+    ///         refused atomically: the whole basket reverts, so a fraudulent offer cannot borrow the
+    ///         legitimate offer's bond as camouflage.
+    function test_AggregatedFraudulentContributorIsRefused() public {
+        // FRAUD publishes an offer with a bond larger than their deposit.
+        address FRAUD = makeAddr("fraudUnderwriter");
+        token.faucet(FRAUD, 100e6); // trivial deposit
+        vm.prank(FRAUD);
+        token.approve(address(engine), type(uint256).max);
+        vm.prank(FRAUD);
+        engine.deposit(100e6);
+
+        vm.prank(BOB);
+        uint256 honestId = offers.publishOffer(
+            ALICE, CHAIN_KEY, DEPTH, 6_000e6, 7_200e6, END_BLOCK - START_BLOCK, 0,
+            SOURCE_CONTRACT, ProvenTx.transferTopic(),
+            address(predicateProhibited), bytes32(uint256(uint160(TREASURY))), 0
+        );
+        vm.prank(FRAUD);
+        uint256 fraudId = offers.publishOffer(
+            ALICE, CHAIN_KEY, DEPTH, 4_000e6, 4_800e6, END_BLOCK - START_BLOCK, 0,
+            SOURCE_CONTRACT, ProvenTx.transferTopic(),
+            address(predicateProhibited), bytes32(uint256(uint160(TREASURY))), 1
+        );
+
+        uint256[] memory ids = new uint256[](2);
+        ids[0] = honestId;
+        ids[1] = fraudId;
+
+        vm.prank(ALICE);
+        vm.expectRevert(); // engine reverts on InsufficientFreeBalance for FRAUD
+        market.purchaseAggregated(ids, START_BLOCK);
+
+        // Both offers remain open — the transaction unwound cleanly.
+        assertFalse(offers.getOffer(honestId).filled);
+        assertFalse(offers.getOffer(fraudId).filled);
     }
 
     /// @notice Malformed bytes are reported, not reverted, by the preflight path.

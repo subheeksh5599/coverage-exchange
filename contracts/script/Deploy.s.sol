@@ -7,6 +7,7 @@ import {CoverageEngine} from "../src/CoverageEngine.sol";
 import {CoverageMarket} from "../src/CoverageMarket.sol";
 import {ChallengeManager} from "../src/ChallengeManager.sol";
 import {LendingAdapter} from "../src/LendingAdapter.sol";
+import {OfferRegistry} from "../src/OfferRegistry.sol";
 import {AttestcoinAdapter} from "../src/AttestcoinAdapter.sol";
 import {DemoToken} from "../src/DemoToken.sol";
 import {ProhibitedRecipient} from "../src/predicates/ProhibitedRecipient.sol";
@@ -34,8 +35,11 @@ contract Deploy is Script {
         CoverageMarket market = new CoverageMarket(token, engine);
         ChallengeManager challenges = new ChallengeManager(adapter, engine);
         LendingAdapter lending = new LendingAdapter(token, engine);
+        OfferRegistry offerRegistry = new OfferRegistry();
 
         engine.wireModules(address(market), address(challenges), address(lending));
+        offerRegistry.setMarket(address(market));
+        market.setOfferRegistry(address(offerRegistry));
 
         ProhibitedRecipient predicateProhibited = new ProhibitedRecipient();
         AmountAboveLimit predicateAbove = new AmountAboveLimit();
@@ -51,6 +55,7 @@ contract Deploy is Script {
         console.log("CoverageMarket       ", address(market));
         console.log("ChallengeManager     ", address(challenges));
         console.log("LendingAdapter       ", address(lending));
+        console.log("OfferRegistry        ", address(offerRegistry));
         console.log("ProhibitedRecipient  ", address(predicateProhibited));
         console.log("AmountAboveLimit     ", address(predicateAbove));
         console.log("AmountBelowFloor     ", address(predicateBelow));

@@ -8,8 +8,9 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useWallet } from "@/lib/wallet";
 import { useActions } from "@/lib/actions";
-import { useAccountState, usePositions, money } from "@/lib/protocol";
-import { TOKEN_SYMBOL } from "@/lib/chain";
+import { useAccountState, usePositions, offerRegistryDeployed, money } from "@/lib/protocol";
+import { ADDR, SOURCE_CHAIN_KEY, TOKEN_SYMBOL, TOKEN_DECIMALS } from "@/lib/chain";
+import { parseUnits } from "viem";
 import {
   Panel,
   Field,
@@ -36,6 +37,17 @@ export default function UnderwritePage() {
   const [withdrawAmt, setWithdrawAmt] = useState("");
   const [borrower, setBorrower] = useState("");
   const [bps, setBps] = useState("10000");
+
+  // Offer form state — the "publish an offer" panel below the price setter.
+  const [offerBorrower, setOfferBorrower] = useState("");
+  const [offerExposure, setOfferExposure] = useState("10000");
+  const [offerBond, setOfferBond] = useState("12000");
+  const [offerWindow, setOfferWindow] = useState("100");
+  const [offerDepth, setOfferDepth] = useState("32");
+  const [offerTranche, setOfferTranche] = useState<0 | 1>(0);
+  const [offerExpiryDays, setOfferExpiryDays] = useState("7");
+
+  const registryLive = offerRegistryDeployed();
 
   const mine = useMemo(
     () => (positions.data ?? []).filter((c) => address && c.underwriter.toLowerCase() === address.toLowerCase()),
@@ -213,6 +225,93 @@ export default function UnderwritePage() {
           </div>
         </Panel>
       </div>
+
+      {/* --------------------------------------------------------------------- publish */}
+      <Panel
+        title="Publish an offer"
+        hint={registryLive ? "on the offer registry" : "registry not deployed"}
+      >
+        {!registryLive ? (
+          <Notice tone="warn">
+            <div>
+              <strong>OfferRegistry is not deployed on this network.</strong> The recorded 2026-09-10 deployment
+              predates it — run <code>forge script script/Deploy.s.sol --broadcast</code> and set{" "}
+              <code>NEXT_PUBLIC_OFFER_REGISTRY_ADDRESS</code> to enable publishing.
+            </div>
+          </Notice>
+        ) : (
+          <div className="cols-3">
+            <Field label="Borrower (or blank = open)" hint="targeted, or fillable by anyone">
+              <input
+                value={offerBorrower}
+                onChange={(e) => setOfferBorrower(e.target.value)}
+                placeholder="0x…"
+              />
+            </Field>
+            <Field label="Max exposure" hint="what a lender may draw against this coverage">
+              <AmountInput value={offerExposure} onChange={setOfferExposure} unit={TOKEN_SYMBOL} />
+            </Field>
+            <Field label="Bond you lock" hint="must be ≥ exposure — the protocol enforces the floor">
+              <AmountInput value={offerBond} onChange={setOfferBond} unit={TOKEN_SYMBOL} />
+            </Field>
+            <Field label="Window length (blocks)" hint="the range you are covering on Sepolia">
+              <AmountInput value={offerWindow} onChange={setOfferWindow} unit="blocks" />
+            </Field>
+            <Field label="Required attestation depth" hint="blocks past window end the frontier must reach">
+              <AmountInput value={offerDepth} onChange={setOfferDepth} unit="blocks" />
+            </Field>
+            <Field label="Tranche" hint="junior takes losses first in an aggregated basket">
+              <div className="tabs">
+                <button type="button" aria-pressed={offerTranche === 0} onClick={() => setOfferTranche(0)}>
+                  senior
+                </button>
+                <button type="button" aria-pressed={offerTranche === 1} onClick={() => setOfferTranche(1)}>
+                  junior (+50%)
+                </button>
+              </div>
+            </Field>
+            <Field label="Offer expires in (days)" hint="on-chain timestamp; the registry refuses fills after">
+              <AmountInput value={offerExpiryDays} onChange={setOfferExpiryDays} unit="days" />
+            </Field>
+            <div style={{ gridColumn: "1 / -1" }}>
+              <TxButton
+                solid
+                block
+                disabled={
+                  offerBorrower !== "" && !/^0x[0-9a-fA-F]{40}$/.test(offerBorrower)
+                }
+                onRun={() =>
+                  actions.publishOffer({
+                    borrower: (offerBorrower || "0x0000000000000000000000000000000000000000") as `0x${string}`,
+                    chainKey: BigInt(SOURCE_CHAIN_KEY),
+                    requiredDepth: BigInt(offerDepth || "0"),
+                    maxExposure: parseUnits(offerExposure || "0", TOKEN_DECIMALS),
+                    bond: parseUnits(offerBond || "0", TOKEN_DECIMALS),
+                    windowBlocks: BigInt(offerWindow || "0"),
+                    expiresAt: BigInt(
+                      Math.floor(Date.now() / 1000) + Number(offerExpiryDays || "1") * 86_400
+                    ),
+                    sourceContract: "0x1c7d4b196cb0c7b01d743fbc6116a902379c7238",
+                    eventSignature:
+                      "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef",
+                    predicate: ADDR.predicates.prohibitedRecipient,
+                    predicateParams: (`0x${"fe3A58A4fBd2755630E341A28006989aD08CD01d".toLowerCase().padStart(64, "0")}`) as `0x${string}`,
+                    tranche: offerTranche,
+                  })
+                }
+                confirmNote={<>Offer published. It shows up on the <Link href="/offers">Offers</Link> page.</>}
+              >
+                Publish offer
+              </TxButton>
+              <div className="footnote">
+                Defaults use the canonical Sepolia demo evidence (prohibited-recipient predicate on the recorded
+                source contract) so the offer can be filled and challenged against the recorded counterexample
+                without further configuration.
+              </div>
+            </div>
+          </div>
+        )}
+      </Panel>
 
       {/* --------------------------------------------------------------------- my book */}
       <Panel

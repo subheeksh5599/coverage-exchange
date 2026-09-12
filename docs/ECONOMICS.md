@@ -36,6 +36,8 @@ ratio below 1.0×, so this is a hard floor rather than a default that can be qui
 riskBps      = baseRateBps × durationMultiplierBps / 10 000
                           × depthMultiplierBps    / 10 000
                           × counterpartyBps       / 10 000
+                          × utilizationMultiplierBps(U) / 10 000
+                          × trancheMultiplierBps(t)     / 10 000
 
 premium      = E × riskBps / 10 000
 ```
@@ -43,8 +45,11 @@ premium      = E × riskBps / 10 000
 where
 
 ```
-durationMultiplierBps(W) = min(durationBaseBps + durationPerBlockBps × W, durationCapBps)
-depthMultiplierBps(d)    = min(depthBaseBps    + depthPerBlockBps    × d, depthCapBps)
+durationMultiplierBps(W)     = min(durationBaseBps    + durationPerBlockBps    × W, durationCapBps)
+depthMultiplierBps(d)        = min(depthBaseBps       + depthPerBlockBps       × d, depthCapBps)
+utilizationMultiplierBps(U)  = min(utilBaseBps        + utilPerBpsUtilBps      × u / 10 000, utilCapBps)
+   where u = lockedBond(U) × 10 000 / max(underwriterBalance(U), 1)   // 0..10 000
+trancheMultiplierBps(t)      = t == JUNIOR ? trancheJuniorMultiplierBps : 10 000
 ```
 
 Deployed constants (in `CoverageMarket.curve`):
@@ -58,6 +63,10 @@ Deployed constants (in `CoverageMarket.curve`):
 | `depthBaseBps` | 10 000 | 1.00× at zero required depth |
 | `depthPerBlockBps` | 25 | +0.25% per block of depth ⇒ depth 32 is 1.08× |
 | `depthCapBps` | 20 000 | 2.00× ceiling |
+| `trancheJuniorMultiplierBps` | 15 000 | 1.50× premium for a junior tranche (slashed first) |
+| `utilBaseBps` | 10 000 | 1.00× at zero utilization |
+| `utilPerBpsUtilBps` | 10 000 | +1.00× per full utilization ⇒ 2.00× at 100% utilization |
+| `utilCapBps` | 25 000 | 2.50× ceiling |
 
 **Worked example** — exposure 10,000, window 100 blocks, depth 32, neutral counterparty:
 
@@ -70,8 +79,16 @@ premium = 10 000 × 56.7 / 10 000 ≈ 56.7
 premium that does not equal the quote exactly (`AttackMatrixTest.test_TamperedPremiumIsRefused`).
 
 **Monotonicity** is the property that makes this a risk price rather than a sticker: a longer window and
-a deeper attestation requirement both cost strictly more (`test_PremiumReaches…` asserts both
-directions). What it is *not*: a market. Underwriters do not compete on price, and the README says so.
+a deeper attestation requirement both cost strictly more (`test_LongerWindowAndDeeperAttestationCostMore`
+asserts both directions), utilization raises the premium monotonically (`DynamicPricing.t.sol`), and a
+junior tranche costs `trancheJuniorMultiplierBps / 10 000` more than the equivalent senior offer
+(`test_JuniorOfferChargesMoreThanSenior`).
+
+**This is now a market**, in the sense the roadmap called for: `OfferRegistry` lets several underwriters
+publish competing offers against the same borrower and window; `purchaseAggregated` combines several
+compatible offers into one position backed by each underwriter's separate bond; the utilization multiplier
+makes an under-used underwriter cheaper than one whose book is full, so quotes visibly respond to the
+supply side rather than sitting on a fixed curve.
 
 ## 3. Counterparty pricing
 
@@ -116,9 +133,20 @@ incentive is the only thing standing between a false position and a paid-out loa
 | `liveUntilHeight = end + d + g` with `g = 10 000` | evidence needs time to mature, and a demo window must be usable shortly after it closes | a position stays drawable for a while after its window closes; `g` is the knob |
 | whole bond to the challenger | maximal incentive to find false claims | no treasury, so the protocol has no revenue — by design at this stage |
 
-## 7. What would make this a market
+## 7. Aggregation and tranches
 
-Deliberately not built: multiple underwriters competing on premium for the same borrower and window,
-capacity aggregation across underwriters for a single position, and transferable coverage positions.
-Those turn "Coverage Exchange" from a pricing curve into an exchange, and they are listed as roadmap
-rather than claimed as done. A broken market is worse than a clean curve.
+An aggregated position is created by `purchaseAggregated([offerId1, offerId2, ...])`. The registry
+refuses baskets whose non-numeric terms disagree (chain, depth, window length, source contract,
+predicate, predicate params), and every contributor's bond is locked from its own engine deposit
+inside the same transaction. On breach, `applyBreach` iterates contributors and pays the challenger
+the **sum of bonds**; junior contributors are accounted first inside the same transfer (visible via
+the `ContributorSlashed` event order). Settlement releases every contributor's locked bond.
+
+**Fuzz invariant** — `I-06 aggregatedBond == Σ contributorBonds` (`testFuzz_I06_AggregatedBondEqualsSumOfContributors`).
+
+## 8. What is still deliberately not built
+
+Transferable coverage would break the counterparty binding that makes the invariant meaningful.
+A governance token adds a second claim on the value the bond already secures. A protocol fee on
+seized bonds reduces the only incentive standing between a false claim and a paid-out loan.
+None of these are on the roadmap: they are non-goals with named reasons in `SECURITY.md`.

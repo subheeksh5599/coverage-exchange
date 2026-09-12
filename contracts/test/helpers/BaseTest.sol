@@ -9,6 +9,7 @@ import {CoverageEngine} from "../../src/CoverageEngine.sol";
 import {CoverageMarket} from "../../src/CoverageMarket.sol";
 import {ChallengeManager} from "../../src/ChallengeManager.sol";
 import {LendingAdapter} from "../../src/LendingAdapter.sol";
+import {OfferRegistry} from "../../src/OfferRegistry.sol";
 import {DemoToken} from "../../src/DemoToken.sol";
 import {ICoverage} from "../../src/interfaces/ICoverage.sol";
 import {INativeQueryVerifier} from "../../src/interfaces/INativeQueryVerifier.sol";
@@ -47,6 +48,7 @@ abstract contract BaseTest is Test {
     CoverageMarket market;
     ChallengeManager challenges;
     LendingAdapter lending;
+    OfferRegistry offers;
 
     ProhibitedRecipient predicateProhibited;
     AmountAboveLimit predicateAbove;
@@ -74,7 +76,10 @@ abstract contract BaseTest is Test {
         market = new CoverageMarket(IERC20(address(token)), engine);
         challenges = new ChallengeManager(adapter, engine);
         lending = new LendingAdapter(IERC20(address(token)), engine);
+        offers = new OfferRegistry();
         engine.wireModules(address(market), address(challenges), address(lending));
+        offers.setMarket(address(market));
+        market.setOfferRegistry(address(offers));
 
         predicateProhibited = new ProhibitedRecipient();
         predicateAbove = new AmountAboveLimit();

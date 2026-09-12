@@ -15,6 +15,7 @@ import { CHAIN_ID, SOURCE_CHAIN_LABEL } from "@/lib/chain";
 const NAV: { href: string; label: string }[] = [
   { href: "/dashboard", label: "Overview" },
   { href: "/market", label: "Buy coverage" },
+  { href: "/offers", label: "Offers" },
   { href: "/underwrite", label: "Provide coverage" },
   { href: "/positions", label: "Positions" },
   { href: "/challenge", label: "Challenge" },

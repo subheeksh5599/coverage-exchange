@@ -36,6 +36,10 @@ export const ADDR = {
     CONTRACTS.challengeManager) as `0x${string}`,
   lendingAdapter: (process.env.NEXT_PUBLIC_LENDING_ADAPTER_ADDRESS ??
     CONTRACTS.lendingAdapter) as `0x${string}`,
+  // Offer registry is a new module — the current recorded deployment predates it, so the address
+  // defaults to the zero address until a redeploy. Guard call sites against this in the UI.
+  offerRegistry: (process.env.NEXT_PUBLIC_OFFER_REGISTRY_ADDRESS ??
+    "0x0000000000000000000000000000000000000000") as `0x${string}`,
   token: (process.env.NEXT_PUBLIC_TOKEN_ADDRESS ?? CONTRACTS.token) as `0x${string}`,
   predicates: {
     prohibitedRecipient: CONTRACTS.predicateProhibitedRecipient as `0x${string}`,
@@ -71,7 +75,15 @@ export const REASON_NAMES = [
 // The full ABIs live in lib/abi.ts. They are re-exported here so pages have one import
 // site, and so the write surface (purchase, draw, challenge, deposit) cannot drift from the
 // read surface — the app signs the same definitions it reads with.
-export { ERC20_ABI, ENGINE_ABI, ADAPTER_ABI, LENDING_ABI, MARKET_ABI, CHALLENGE_ABI } from "./abi";
+export {
+  ERC20_ABI,
+  ENGINE_ABI,
+  ADAPTER_ABI,
+  LENDING_ABI,
+  MARKET_ABI,
+  CHALLENGE_ABI,
+  OFFER_REGISTRY_ABI,
+} from "./abi";
 
 // ---------------------------------------------------------------------------
 // Measured evidence, re-exported from the generated file. Every value was produced by a command
