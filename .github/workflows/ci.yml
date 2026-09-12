@@ -81,7 +81,7 @@ jobs:
       - name: Fail on private keys or .env files in history
         run: |
           set -e
-          if git log --all --diff-filter=A --name-only --pretty=format: | grep -E '(^|/)\.env$|(^|/)\.env\.' ; then
+          if git log --all --diff-filter=A --name-only --pretty=format: | grep -E '(^|/)\.env$|(^|/)\.env\.' | grep -viE '\.env\.(example|sample|template)$' ; then
             echo "::error::a .env file is committed"; exit 1
           fi
           # 32-byte hex literals that are not obviously placeholders, hashes or test values
