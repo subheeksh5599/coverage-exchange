@@ -204,7 +204,9 @@ contract CoverageEngine is ICoverage, Ownable, ReentrancyGuard {
 
     function _copyToMemory(Contributor[] calldata src) internal pure returns (Contributor[] memory out) {
         out = new Contributor[](src.length);
-        for (uint256 i; i < src.length; ++i) out[i] = src[i];
+        for (uint256 i; i < src.length; ++i) {
+            out[i] = src[i];
+        }
     }
 
     /// @dev Shared post-validation body. Every contributor's bond is locked in the same pass, so a
@@ -254,7 +256,9 @@ contract CoverageEngine is ICoverage, Ownable, ReentrancyGuard {
         c.challengeKey = bytes32(0);
 
         Contributor[] storage cs = _contributors[id];
-        for (uint256 i; i < contributors.length; ++i) cs.push(contributors[i]);
+        for (uint256 i; i < contributors.length; ++i) {
+            cs.push(contributors[i]);
+        }
 
         emit CoverageCreated(id, p.borrower, p.underwriter);
     }
@@ -460,7 +464,9 @@ contract CoverageEngine is ICoverage, Ownable, ReentrancyGuard {
         if (c.id == 0) revert UnknownCoverage(coverageId);
         Contributor[] storage cs = _contributors[coverageId];
         list = new Contributor[](cs.length);
-        for (uint256 i; i < cs.length; ++i) list[i] = cs[i];
+        for (uint256 i; i < cs.length; ++i) {
+            list[i] = cs[i];
+        }
     }
 
     function contributorCount(uint256 coverageId) external view returns (uint256) {

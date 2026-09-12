@@ -395,15 +395,33 @@ contract AttackMatrixTest is BaseTest {
 
         vm.prank(BOB);
         uint256 honestId = offers.publishOffer(
-            ALICE, CHAIN_KEY, DEPTH, 6_000e6, 7_200e6, END_BLOCK - START_BLOCK, 0,
-            SOURCE_CONTRACT, ProvenTx.transferTopic(),
-            address(predicateProhibited), bytes32(uint256(uint160(TREASURY))), 0
+            ALICE,
+            CHAIN_KEY,
+            DEPTH,
+            6_000e6,
+            7_200e6,
+            END_BLOCK - START_BLOCK,
+            0,
+            SOURCE_CONTRACT,
+            ProvenTx.transferTopic(),
+            address(predicateProhibited),
+            bytes32(uint256(uint160(TREASURY))),
+            0
         );
         vm.prank(FRAUD);
         uint256 fraudId = offers.publishOffer(
-            ALICE, CHAIN_KEY, DEPTH, 4_000e6, 4_800e6, END_BLOCK - START_BLOCK, 0,
-            SOURCE_CONTRACT, ProvenTx.transferTopic(),
-            address(predicateProhibited), bytes32(uint256(uint160(TREASURY))), 1
+            ALICE,
+            CHAIN_KEY,
+            DEPTH,
+            4_000e6,
+            4_800e6,
+            END_BLOCK - START_BLOCK,
+            0,
+            SOURCE_CONTRACT,
+            ProvenTx.transferTopic(),
+            address(predicateProhibited),
+            bytes32(uint256(uint160(TREASURY))),
+            1
         );
 
         uint256[] memory ids = new uint256[](2);

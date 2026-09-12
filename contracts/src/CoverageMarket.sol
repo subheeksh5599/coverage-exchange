@@ -220,8 +220,9 @@ contract CoverageMarket is Ownable, ReentrancyGuard {
         if (o.borrower != address(0) && o.borrower != msg.sender) revert NotTheCounterparty();
 
         ICoverage.CreateParams memory p = _paramsFromOffer(o, msg.sender, startBlock);
-        p.premium =
-            quoteTranche(o.maxExposure, o.windowBlocks, o.requiredDepth, o.underwriter, msg.sender, o.tranche);
+        p.premium = quoteTranche(
+            o.maxExposure, o.windowBlocks, o.requiredDepth, o.underwriter, msg.sender, o.tranche
+        );
 
         if (p.premium > 0) TOKEN.safeTransferFrom(msg.sender, o.underwriter, p.premium);
 
@@ -248,15 +249,17 @@ contract CoverageMarket is Ownable, ReentrancyGuard {
         uint256 totalExposure = head.maxExposure;
         uint256 totalBond = head.bond;
         uint256 totalPremium = quoteTranche(
-            head.maxExposure, head.windowBlocks, head.requiredDepth, head.underwriter, msg.sender, head.tranche
+            head.maxExposure,
+            head.windowBlocks,
+            head.requiredDepth,
+            head.underwriter,
+            msg.sender,
+            head.tranche
         );
 
-        CoverageEngine.Contributor[] memory contributors =
-            new CoverageEngine.Contributor[](offerIds.length);
+        CoverageEngine.Contributor[] memory contributors = new CoverageEngine.Contributor[](offerIds.length);
         contributors[0] = CoverageEngine.Contributor({
-            underwriter: head.underwriter,
-            bond: head.bond,
-            tranche: head.tranche
+            underwriter: head.underwriter, bond: head.bond, tranche: head.tranche
         });
 
         for (uint256 i = 1; i < offerIds.length; ++i) {
@@ -274,11 +277,8 @@ contract CoverageMarket is Ownable, ReentrancyGuard {
             totalPremium += quoteTranche(
                 o.maxExposure, o.windowBlocks, o.requiredDepth, o.underwriter, msg.sender, o.tranche
             );
-            contributors[i] = CoverageEngine.Contributor({
-                underwriter: o.underwriter,
-                bond: o.bond,
-                tranche: o.tranche
-            });
+            contributors[i] =
+                CoverageEngine.Contributor({underwriter: o.underwriter, bond: o.bond, tranche: o.tranche});
         }
 
         // Aggregated position has no single underwriter — the engine keys off address(0) and reads
@@ -309,7 +309,9 @@ contract CoverageMarket is Ownable, ReentrancyGuard {
                 OfferRegistry.Offer memory o = offerRegistry.getOffer(offerIds[i]);
                 uint256 share = (i == offerIds.length - 1)
                     ? totalPremium - paid
-                    : quoteTranche(o.maxExposure, o.windowBlocks, o.requiredDepth, o.underwriter, msg.sender, o.tranche);
+                    : quoteTranche(
+                        o.maxExposure, o.windowBlocks, o.requiredDepth, o.underwriter, msg.sender, o.tranche
+                    );
                 if (share > 0) TOKEN.safeTransfer(o.underwriter, share);
                 paid += share;
             }

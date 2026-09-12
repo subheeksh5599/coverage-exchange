@@ -86,7 +86,9 @@ contract OfferRegistry {
         bytes32 predicateParams,
         uint8 tranche
     ) external returns (uint256 id) {
-        if (predicate == address(0) || sourceContract == address(0)) revert ZeroAddress();
+        if (predicate == address(0) || sourceContract == address(0)) {
+            revert ZeroAddress();
+        }
         if (maxExposure == 0 || bond == 0 || windowBlocks == 0) revert BadOffer();
         if (tranche > TRANCHE_JUNIOR) revert BadTranche(tranche);
 

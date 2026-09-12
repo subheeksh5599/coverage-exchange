@@ -29,13 +29,10 @@ contract AggregationTest is BaseTest {
         engine.deposit(500_000e6);
     }
 
-    function _publish(
-        address underwriter,
-        address borrower,
-        uint256 exposure,
-        uint256 bond,
-        uint8 tranche
-    ) internal returns (uint256 id) {
+    function _publish(address underwriter, address borrower, uint256 exposure, uint256 bond, uint8 tranche)
+        internal
+        returns (uint256 id)
+    {
         vm.prank(underwriter);
         id = offers.publishOffer(
             borrower,
@@ -170,7 +167,9 @@ contract AggregationTest is BaseTest {
 
         CoverageEngine.Contributor[] memory list = engine.contributorsOf(covId);
         uint256 sum;
-        for (uint256 i; i < list.length; ++i) sum += list[i].bond;
+        for (uint256 i; i < list.length; ++i) {
+            sum += list[i].bond;
+        }
         assertEq(sum, engine.getCoverage(covId).bond, "sum of contributor bonds == position bond");
     }
 }

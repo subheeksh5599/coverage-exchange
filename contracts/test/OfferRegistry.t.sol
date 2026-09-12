@@ -121,12 +121,8 @@ contract OfferRegistryTest is BaseTest {
     }
 
     function test_JuniorOfferChargesMoreThanSenior() public {
-        uint256 seniorPremium = market.quoteTranche(
-            EXPOSURE, END_BLOCK - START_BLOCK, DEPTH, BOB, ALICE, 0
-        );
-        uint256 juniorPremium = market.quoteTranche(
-            EXPOSURE, END_BLOCK - START_BLOCK, DEPTH, BOB, ALICE, 1
-        );
+        uint256 seniorPremium = market.quoteTranche(EXPOSURE, END_BLOCK - START_BLOCK, DEPTH, BOB, ALICE, 0);
+        uint256 juniorPremium = market.quoteTranche(EXPOSURE, END_BLOCK - START_BLOCK, DEPTH, BOB, ALICE, 1);
         assertGt(juniorPremium, seniorPremium, "JUNIOR must cost more than SENIOR");
     }
 }

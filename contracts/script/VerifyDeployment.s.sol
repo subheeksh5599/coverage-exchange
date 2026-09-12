@@ -36,8 +36,13 @@ contract VerifyDeployment is Script {
         AttestcoinAdapter adapter = AttestcoinAdapter(adapterAddr);
         CoverageEngine engine = CoverageEngine(engineAddr);
 
-        require(adapter.BLOCK_PROVER_ADDRESS() == 0x0000000000000000000000000000000000000FD2, "bad prover address");
-        require(adapter.CHAIN_INFO_ADDRESS() == 0x0000000000000000000000000000000000000fD3, "bad chaininfo address");
+        require(
+            adapter.BLOCK_PROVER_ADDRESS() == 0x0000000000000000000000000000000000000FD2, "bad prover address"
+        );
+        require(
+            adapter.CHAIN_INFO_ADDRESS() == 0x0000000000000000000000000000000000000fD3,
+            "bad chaininfo address"
+        );
         console.log("");
         console.log("=== attestcoin constants baked into the deployment ===");
         console.log("Block Prover", adapter.BLOCK_PROVER_ADDRESS());

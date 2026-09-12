@@ -177,15 +177,33 @@ contract InvariantsTest is BaseTest {
 
         vm.prank(BOB);
         uint256 idA = offers.publishOffer(
-            ALICE, CHAIN_KEY, DEPTH, uint256(bondA), uint256(bondA),
-            END_BLOCK - START_BLOCK, 0, SOURCE_CONTRACT, ProvenTx.transferTopic(),
-            address(predicateProhibited), bytes32(uint256(uint160(TREASURY))), 0
+            ALICE,
+            CHAIN_KEY,
+            DEPTH,
+            uint256(bondA),
+            uint256(bondA),
+            END_BLOCK - START_BLOCK,
+            0,
+            SOURCE_CONTRACT,
+            ProvenTx.transferTopic(),
+            address(predicateProhibited),
+            bytes32(uint256(uint160(TREASURY))),
+            0
         );
         vm.prank(EVE);
         uint256 idB = offers.publishOffer(
-            ALICE, CHAIN_KEY, DEPTH, uint256(bondB), uint256(bondB),
-            END_BLOCK - START_BLOCK, 0, SOURCE_CONTRACT, ProvenTx.transferTopic(),
-            address(predicateProhibited), bytes32(uint256(uint160(TREASURY))), 1
+            ALICE,
+            CHAIN_KEY,
+            DEPTH,
+            uint256(bondB),
+            uint256(bondB),
+            END_BLOCK - START_BLOCK,
+            0,
+            SOURCE_CONTRACT,
+            ProvenTx.transferTopic(),
+            address(predicateProhibited),
+            bytes32(uint256(uint160(TREASURY))),
+            1
         );
 
         uint256 lockedBobBefore = engine.lockedBond(BOB);
@@ -200,7 +218,9 @@ contract InvariantsTest is BaseTest {
         ICoverage.Coverage memory c = engine.getCoverage(covId);
         CoverageEngine.Contributor[] memory list = engine.contributorsOf(covId);
         uint256 sum;
-        for (uint256 i; i < list.length; ++i) sum += list[i].bond;
+        for (uint256 i; i < list.length; ++i) {
+            sum += list[i].bond;
+        }
         assertEq(sum, c.bond, "I-06: sum(contributor.bond) == position.bond");
         assertEq(engine.lockedBond(BOB) - lockedBobBefore, uint256(bondA));
         assertEq(engine.lockedBond(EVE) - lockedEveBefore, uint256(bondB));
