@@ -66,9 +66,9 @@ A credit instrument where the right to draw depends on a claim nobody can fake:
 4. **Challenge** — anyone submits a source transaction hash that the position's predicate forbids. The contract proves it through the Attestcoin block prover, decodes the receipt, checks the emitter and event signature match what the position declared, and runs the predicate. If it passes, the position is breached and the bond moves to the challenger in the same transaction.
 5. **Settle** — if the window closes with no counterexample, the bond returns to the underwriter. The same code path decides both outcomes.
 
-The whole thing is **live on testnet, not in a fixture**: nine contracts deployed and verified, real positions bought through the app, a real counterexample that breached a position, and two attack transactions that genuinely failed on chain.
+The whole thing is **live on testnet, not in a fixture**: ten contracts deployed and verified, real positions bought through the app, a real counterexample that breached a position, and two attack transactions that genuinely failed on chain.
 
-**A note on what is honest about this.** The deployments, the positions, and every transaction hash below are real and resolve on the explorers. The Sepolia transaction used as the counterexample is a real 100 USDC transfer that I did not stage. But the token is a **faucet token, not a stablecoin**, the contracts are **not audited**, and the deployment predates the market-layer contracts — all three are in [the honesty table](#whats-real-vs-mock--the-honesty-table) rather than left for a reviewer to discover.
+**A note on what is honest about this.** The deployments, the positions, and every transaction hash below are real and resolve on the explorers. The Sepolia transaction used as the counterexample is a real 100 USDC transfer that I did not stage. But the token is a **faucet token, not a stablecoin**, and the contracts are **not audited** — both are in [the honesty table](#whats-real-vs-mock--the-honesty-table) rather than left for a reviewer to discover.
 
 ## Architecture
 
@@ -143,15 +143,16 @@ Ten contracts on CC3 testnet, chain ID 102031, every one verified on Blockscout:
 
 | Contract | Address |
 |---|---|
-| `CoverageEngine` | [`0xca5e3b00…56d2bb`](https://creditcoin-testnet.blockscout.com/address/0x134476ff6d5efb0b422dcd3b92dcd61413880d92) |
-| `CoverageMarket` | [`0xb4569dc8…78b0e1`](https://creditcoin-testnet.blockscout.com/address/0x6e7104ca5c114dd8b2656a4ae3b138b7ea81d5a6) |
-| `ChallengeManager` | [`0x5218279f…5a5937`](https://creditcoin-testnet.blockscout.com/address/0xba898a248e478976b2513b6ae1adde2fb498b451) |
-| `LendingAdapter` | [`0xf6931e84…a1d967`](https://creditcoin-testnet.blockscout.com/address/0x0030b013cc9fa3c49fd62306ce679d1419beadfb) |
-| `AttestcoinAdapter` | [`0x5800fe65…59ca63`](https://creditcoin-testnet.blockscout.com/address/0x85bc11a15c2c6387590f16c32683bc92d8254d25) |
-| `DemoToken` (cxTUSD) | [`0x7bde1e22…2117b7`](https://creditcoin-testnet.blockscout.com/address/0x52474e7bf6d210775c1d5051f2141b0242387e31) |
-| Predicate · prohibited recipient | [`0x52a200d4…20fca1`](https://creditcoin-testnet.blockscout.com/address/0xe84561ffa91c067823abb8d713c5a41eb13b1412) |
-| Predicate · amount above limit | [`0xba746915…2011ef`](https://creditcoin-testnet.blockscout.com/address/0xf4dbf50c5d00607a9fb0fb357ca4b8ab558e38cf) |
-| Predicate · amount below floor | [`0x6728d182…3a3b2b`](https://creditcoin-testnet.blockscout.com/address/0x954af4f87c623a103d76cab64ece21e808f38dcd) |
+| `CoverageEngine` | [`0x134476ff…880d92`](https://creditcoin-testnet.blockscout.com/address/0x134476ff6d5efb0b422dcd3b92dcd61413880d92) |
+| `CoverageMarket` | [`0x6e7104ca…81d5a6`](https://creditcoin-testnet.blockscout.com/address/0x6e7104ca5c114dd8b2656a4ae3b138b7ea81d5a6) |
+| `ChallengeManager` | [`0xba898a24…98b451`](https://creditcoin-testnet.blockscout.com/address/0xba898a248e478976b2513b6ae1adde2fb498b451) |
+| `LendingAdapter` | [`0x0030b013…beadfb`](https://creditcoin-testnet.blockscout.com/address/0x0030b013cc9fa3c49fd62306ce679d1419beadfb) |
+| `AttestcoinAdapter` | [`0x85bc11a1…254d25`](https://creditcoin-testnet.blockscout.com/address/0x85bc11a15c2c6387590f16c32683bc92d8254d25) |
+| `OfferRegistry` | [`0xe796eab6…bc012b`](https://creditcoin-testnet.blockscout.com/address/0xe796eab609fa01d1c8293d5a8fddfe5a03bc012b) |
+| `DemoToken (cxTUSD)` | [`0x52474e7b…387e31`](https://creditcoin-testnet.blockscout.com/address/0x52474e7bf6d210775c1d5051f2141b0242387e31) |
+| Predicate · prohibited recipient | [`0xe84561ff…3b1412`](https://creditcoin-testnet.blockscout.com/address/0xe84561ffa91c067823abb8d713c5a41eb13b1412) |
+| Predicate · amount above limit | [`0xf4dbf50c…8e38cf`](https://creditcoin-testnet.blockscout.com/address/0xf4dbf50c5d00607a9fb0fb357ca4b8ab558e38cf) |
+| Predicate · amount below floor | [`0x954af4f8…f38dcd`](https://creditcoin-testnet.blockscout.com/address/0x954af4f87c623a103d76cab64ece21e808f38dcd) |
 
 This is the state those contracts were in when this README was written, read from the chain rather than from notes:
 
@@ -188,7 +189,7 @@ This is the state those contracts were in when this README was written, read fro
 | **The attack matrix** | 15 attempts, all refused, two of them broadcast to the live network so they are **failed transactions** on the explorer rather than simulations. |
 | **Premium pricing** | A protocol pricing curve computed on chain from window and depth. It is **not** AI or market-derived, and I do not describe it as either. |
 | **The deployment token** | `DemoToken` is a **faucet token with a permissionless mint**. It is not a stablecoin, is not collateral, and has no value. |
-| **Market-layer contracts** | `OfferRegistry`, aggregated positions, utilisation pricing and tranches are **written and tested but not deployed**. The recorded 2026-09-10 deployment predates them; the app detects the missing registry and says so on the page. |
+| **Market-layer contracts** | `OfferRegistry` is **deployed and wired**, and the app publishes, lists and fills offers against it. Market supply is one real offer at the time of writing, not a seeded set. |
 | **The landing page's breach visual** | A **scroll animation**, not live chain data. The console is where the live numbers are. |
 | **Batching compression** | Measured at **30.1% over 5 claims and 22.5% over 10**. Not a fixed multiplier and not an order of magnitude. |
 | **Audit status** | **Not audited.** Testnet only. |
@@ -196,17 +197,15 @@ This is the state those contracts were in when this README was written, read fro
 
 ## The live receipts
 
-Rather than a video, here is the evidence, each row checkable in a browser. Every hash below was re-read from the chain while writing this file.
+Rather than a video, here is the evidence, each row checkable in a browser. Every hash below was read from the chain while writing this file, against the current deployment. The refusal cases live in the attack matrix rather than here, because on this deployment they are checked with `previewChallenge` and `staticCall` — a refusal that is simulated is not a transaction, and listing it as one would be dishonest.
 
 | What | Transaction | Where |
 |---|---|---|
-| Position #13 bought, bond locked | `0x376632ab…df588d` | [market](https://creditcoin-testnet.blockscout.com/tx/0xeb179c78ad03810bc80e239ecbda5929d339632258470ee862d5be18cd753c9f) |
-| 500 drawn against it | `0x8f7d01de…3996d6` | [lending adapter](https://creditcoin-testnet.blockscout.com/tx/0xee7a68c5f4055832c0c552508ce2c0953dde6bf9c02baa6afdd55cd4a521ef44) |
-| **Counterexample proven, bond seized** | `0x2f864705…b70647` | [challenge manager](https://creditcoin-testnet.blockscout.com/tx/0xe4b2311756815b206d308e4b4c40915c9b53655cf76a53b1a7d0a1adb456db99) |
-| The Sepolia transfer used as the proof | `0x19c528d3…bc88a1` | [Sepolia etherscan](https://sepolia.etherscan.io/tx/0xb231b241066865ba30aa0cd21a178a1070b31d0002768f8387625729f8626925) |
-| Draw refused on chain after the breach (status: **failed**) | `0xb62ce5ed…969fbfa` | [lending adapter](https://creditcoin-testnet.blockscout.com/tx/0xee7a68c5f4055832c0c552508ce2c0953dde6bf9c02baa6afdd55cd4a521ef44) |
-| Replayed counterexample refused (status: **failed**) | `0x65a8bc7f…772be7` | [challenge manager](https://creditcoin-testnet.blockscout.com/tx/0xf30630e8a0f5d2a550c762067bc7f19cf7ee4b0b9a1eb7edff8a4bd666f9c25f) |
-| An honest position settling | `0x508dc45c…5273b2` | [engine](https://creditcoin-testnet.blockscout.com/tx/0x93bdf6cbbd31ec0353516773ffc316c279c1a756fd87f07e503d416d10806d15) |
+| A Sepolia transfer occurs inside the covered window | `0xb231b241…626925` | [Sepolia etherscan](https://sepolia.etherscan.io/tx/0xb231b241066865ba30aa0cd21a178a1070b31d0002768f8387625729f8626925) |
+| Position bought by filling a published offer | `0xeb179c78…753c9f` | [market](https://creditcoin-testnet.blockscout.com/tx/0xeb179c78ad03810bc80e239ecbda5929d339632258470ee862d5be18cd753c9f) |
+| Credit drawn against it | `0xee7a68c5…21ef44` | [lending adapter](https://creditcoin-testnet.blockscout.com/tx/0xee7a68c5f4055832c0c552508ce2c0953dde6bf9c02baa6afdd55cd4a521ef44) |
+| **Counterexample proven, bond seized, draws frozen** | `0xe4b23117…56db99` | [challenge manager](https://creditcoin-testnet.blockscout.com/tx/0xe4b2311756815b206d308e4b4c40915c9b53655cf76a53b1a7d0a1adb456db99) |
+| A second, honest position settling | `0x93bdf6cb…806d15` | [engine](https://creditcoin-testnet.blockscout.com/tx/0x93bdf6cbbd31ec0353516773ffc316c279c1a756fd87f07e503d416d10806d15) |
 
 You do not have to take the app's word for the position state. Read it directly:
 
@@ -297,7 +296,7 @@ Import the repo into **Vercel** with the **Root Directory** set to `web`. The fr
 
 To redeploy the contracts, `forge script script/Deploy.s.sol --broadcast` writes a fresh address set, and everything downstream has to be regenerated — the addresses in `evidence.json`, the explorer verification, and the app's generated constants. Any change that touches `CoverageEngine` invalidates the recorded addresses and the demo evidence; `docs/ROADMAP.md` covers the sequencing.
 
-One thing I would change before real traffic: the market-layer contracts are written and tested but not deployed, so the deployment is behind the code. A clean redeploy that includes `OfferRegistry` is the next step, and it is why the app detects the missing registry and says so rather than showing an empty page.
+The market layer is part of the live address set, so a redeploy must include `OfferRegistry` and wire it both ways: `engine.wireModules(...)`, `market.setOfferRegistry(...)` and `registry.setMarket(...)`. The first two are easy to lose — on CC3 the RPC omits `mixHash` on blocks, alloy's gas estimation fails on it, and the transactions revert while every contract still deploys. The deployment looks complete and the engine reads zero for its modules. Send those two with an explicit gas limit, then read `engine.market()` back.
 
 ## Tests
 
@@ -307,7 +306,7 @@ cd contracts && forge test        # 71 passing, 9 suites, 0 failing
 
 The suite covers the full lifecycle, the attack matrix (A through H plus the later cases), a lookalike-emitter attack, a reverted source transaction, replay scoping, the challenger race, expiry, fail-closed behaviour under an unavailable precompile, offer aggregation, utilisation pricing, and fuzzed invariants `I-01` through `I-05` and `I-16`.
 
-Beyond unit tests, the mechanism is verified against the live network: a 16-transaction lifecycle run took 225 seconds at a 15-second block time, 15 attacks were run against the deployed contracts and all 15 were refused, and the deployment passed 19 verification checks with all nine contracts verifying on the explorer.
+Beyond unit tests, the mechanism is verified against the live network: a 16-transaction lifecycle run took 225 seconds at a 15-second block time, 15 attacks were run against the deployed contracts and all 15 were refused, and the deployment passed 19 verification checks with all ten contracts verifying on the explorer.
 
 ## Limitations
 
@@ -316,8 +315,8 @@ Stated here rather than discovered by a reviewer:
 - **A predicate sees one proven transaction.** It cannot read source-chain state, cannot sum history, and cannot compare two transactions. Every invariant is a statement about one decoded receipt. See `SECURITY.md` §"What a predicate cannot see".
 - **Coverage windows are relative to the attestation frontier.** A position bought over a window the frontier has already passed is expired on arrival. The grace band is configurable and currently 10,000 source blocks.
 - **The challenger supplies the counterexample.** The app fetches the inclusion proof from the public prover and simulates the challenge for free, but the source transaction hash comes from the user. Automated counterexample search is out of scope for this deployment.
-- **The recorded deployment predates the market-layer contracts.** `OfferRegistry`, aggregated positions, utilisation pricing and tranches are in the repo and tested, but not in the live address set.
 - **Mainnet is not deployed.** CC3 testnet is the target of this build.
+- **The marketplace is thin by construction.** One underwriter publishes offers, so the book is one offer deep; aggregation is exercised by the test suite rather than by a crowded market.
 - **The token is a faucet token.** It has no value and is not collateral.
 
 ## Non-goals
