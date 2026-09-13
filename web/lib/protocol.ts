@@ -133,33 +133,46 @@ export function usePositions() {
 
     const rows = await Promise.all(
       ids.map(async (id) => {
-        const [c, v] = await Promise.all([
+        const [raw, v] = await Promise.all([
           publicClient.readContract({ address: ADDR.engine, abi: ENGINE_ABI, functionName: "getCoverage", args: [id] }),
           publicClient.readContract({ address: ADDR.engine, abi: ENGINE_ABI, functionName: "isValid", args: [id] }),
         ]);
-        const tuple = c as unknown as readonly unknown[];
+        // viem decodes a tuple whose components are NAMED into an object keyed by those names —
+        // it does NOT also expose numeric indices. Index access here yields undefined for every
+        // field, which surfaced as "Cannot convert undefined to a BigInt" and blanked the whole
+        // positions table. Read by name.
+        const c = raw as unknown as {
+          id: bigint; borrower: `0x${string}`; underwriter: `0x${string}`;
+          chainKey: bigint; startBlock: bigint; endBlock: bigint;
+          requiredDepth: bigint; liveUntilHeight: bigint;
+          maxExposure: bigint; capacity: bigint; drawn: bigint;
+          bond: bigint; premium: bigint;
+          predicate: `0x${string}`; predicateParams: `0x${string}`;
+          sourceContract: `0x${string}`; eventSignature: `0x${string}`;
+          status: number; createdAtBlock: bigint; challengeKey: `0x${string}`;
+        };
         const [valid, reason] = v as [boolean, number];
         const cov: Coverage = {
-          id: B(tuple[0]),
-          borrower: tuple[1] as `0x${string}`,
-          underwriter: tuple[2] as `0x${string}`,
-          chainKey: B(tuple[3]),
-          startBlock: B(tuple[4]),
-          endBlock: B(tuple[5]),
-          requiredDepth: B(tuple[6]),
-          liveUntilHeight: B(tuple[7]),
-          maxExposure: B(tuple[8]),
-          capacity: B(tuple[9]),
-          drawn: B(tuple[10]),
-          bond: B(tuple[11]),
-          premium: B(tuple[12]),
-          predicate: tuple[13] as `0x${string}`,
-          predicateParams: tuple[14] as `0x${string}`,
-          sourceContract: tuple[15] as `0x${string}`,
-          eventSignature: tuple[16] as `0x${string}`,
-          status: Number(tuple[17]),
-          createdAtBlock: B(tuple[18]),
-          challengeKey: tuple[19] as `0x${string}`,
+          id: B(c.id),
+          borrower: c.borrower,
+          underwriter: c.underwriter,
+          chainKey: B(c.chainKey),
+          startBlock: B(c.startBlock),
+          endBlock: B(c.endBlock),
+          requiredDepth: B(c.requiredDepth),
+          liveUntilHeight: B(c.liveUntilHeight),
+          maxExposure: B(c.maxExposure),
+          capacity: B(c.capacity),
+          drawn: B(c.drawn),
+          bond: B(c.bond),
+          premium: B(c.premium),
+          predicate: c.predicate,
+          predicateParams: c.predicateParams,
+          sourceContract: c.sourceContract,
+          eventSignature: c.eventSignature,
+          status: Number(c.status),
+          createdAtBlock: B(c.createdAtBlock),
+          challengeKey: c.challengeKey,
           valid,
           reason,
         };
