@@ -4,7 +4,7 @@
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Tests](https://img.shields.io/badge/tests-71%20passing-10b981)](#tests)
-[![Contracts](https://img.shields.io/badge/contracts-9%20verified-8957e5)](https://creditcoin-testnet.blockscout.com/address/0xca5e3b0076673cd64a1655221305e66f2056d2bb)
+[![Contracts](https://img.shields.io/badge/contracts-10%20verified-8957e5)](https://creditcoin-testnet.blockscout.com/address/0x134476ff6d5efb0b422dcd3b92dcd61413880d92)
 [![Chain](https://img.shields.io/badge/chain-Creditcoin%20CC3%20testnet-1f6feb)](https://creditcoin.org)
 [![Attestcoin](https://img.shields.io/badge/attestation-Attestcoin%20precompiles-f59e0b)](https://docs.attestcoin.org)
 ![Stack](https://img.shields.io/badge/Solidity%20%C2%B7%20Foundry%20%C2%B7%20Next.js%2016%20%C2%B7%20viem-1f1f23)
@@ -139,19 +139,19 @@ The integration is verified live with seven keyless checks run against the real 
 
 ## On-chain enforcement (Creditcoin CC3)
 
-Nine contracts on CC3 testnet, chain ID 102031, every one verified on Blockscout:
+Ten contracts on CC3 testnet, chain ID 102031, every one verified on Blockscout:
 
 | Contract | Address |
 |---|---|
-| `CoverageEngine` | [`0xca5e3b00…56d2bb`](https://creditcoin-testnet.blockscout.com/address/0xca5e3b0076673cd64a1655221305e66f2056d2bb) |
-| `CoverageMarket` | [`0xb4569dc8…78b0e1`](https://creditcoin-testnet.blockscout.com/address/0xb4569dc8827a8e573f2bb34b7f68a7ecf078b0e1) |
-| `ChallengeManager` | [`0x5218279f…5a5937`](https://creditcoin-testnet.blockscout.com/address/0x5218279fd26e9b544c27e21acb1bfc9e325a5937) |
-| `LendingAdapter` | [`0xf6931e84…a1d967`](https://creditcoin-testnet.blockscout.com/address/0xf6931e84078c7fffc4f24c18bb15850ce7a1d967) |
-| `AttestcoinAdapter` | [`0x5800fe65…59ca63`](https://creditcoin-testnet.blockscout.com/address/0x5800fe651f37fc22ba0ce5e5b407c0b88a59ca63) |
-| `DemoToken` (cxTUSD) | [`0x7bde1e22…2117b7`](https://creditcoin-testnet.blockscout.com/address/0x7bde1e22355677cf4ac461fec92f534dda2117b7) |
-| Predicate · prohibited recipient | [`0x52a200d4…20fca1`](https://creditcoin-testnet.blockscout.com/address/0x52a200d46c73695c746c31d76f9150a22c20fca1) |
-| Predicate · amount above limit | [`0xba746915…2011ef`](https://creditcoin-testnet.blockscout.com/address/0xba7469150da333bb8d2848e1a86aa80c212011ef) |
-| Predicate · amount below floor | [`0x6728d182…3a3b2b`](https://creditcoin-testnet.blockscout.com/address/0x6728d18271470ea888ae23df99fcf4a70f3a3b2b) |
+| `CoverageEngine` | [`0xca5e3b00…56d2bb`](https://creditcoin-testnet.blockscout.com/address/0x134476ff6d5efb0b422dcd3b92dcd61413880d92) |
+| `CoverageMarket` | [`0xb4569dc8…78b0e1`](https://creditcoin-testnet.blockscout.com/address/0x6e7104ca5c114dd8b2656a4ae3b138b7ea81d5a6) |
+| `ChallengeManager` | [`0x5218279f…5a5937`](https://creditcoin-testnet.blockscout.com/address/0xba898a248e478976b2513b6ae1adde2fb498b451) |
+| `LendingAdapter` | [`0xf6931e84…a1d967`](https://creditcoin-testnet.blockscout.com/address/0x0030b013cc9fa3c49fd62306ce679d1419beadfb) |
+| `AttestcoinAdapter` | [`0x5800fe65…59ca63`](https://creditcoin-testnet.blockscout.com/address/0x85bc11a15c2c6387590f16c32683bc92d8254d25) |
+| `DemoToken` (cxTUSD) | [`0x7bde1e22…2117b7`](https://creditcoin-testnet.blockscout.com/address/0x52474e7bf6d210775c1d5051f2141b0242387e31) |
+| Predicate · prohibited recipient | [`0x52a200d4…20fca1`](https://creditcoin-testnet.blockscout.com/address/0xe84561ffa91c067823abb8d713c5a41eb13b1412) |
+| Predicate · amount above limit | [`0xba746915…2011ef`](https://creditcoin-testnet.blockscout.com/address/0xf4dbf50c5d00607a9fb0fb357ca4b8ab558e38cf) |
+| Predicate · amount below floor | [`0x6728d182…3a3b2b`](https://creditcoin-testnet.blockscout.com/address/0x954af4f87c623a103d76cab64ece21e808f38dcd) |
 
 This is the state those contracts were in when this README was written, read from the chain rather than from notes:
 
@@ -200,18 +200,18 @@ Rather than a video, here is the evidence, each row checkable in a browser. Ever
 
 | What | Transaction | Where |
 |---|---|---|
-| Position #13 bought, bond locked | `0x376632ab…df588d` | [market](https://creditcoin-testnet.blockscout.com/tx/0x376632ab218531cc8533193f0ddb6e39e341a6be7d0be5f35780e72626df588d) |
-| 500 drawn against it | `0x8f7d01de…3996d6` | [lending adapter](https://creditcoin-testnet.blockscout.com/tx/0x8f7d01de3fdb428c5cccd8c0a3fe418a3be45530982afa58c8a3d0875d3996d6) |
-| **Counterexample proven, bond seized** | `0x2f864705…b70647` | [challenge manager](https://creditcoin-testnet.blockscout.com/tx/0x2f86470544c839fc43a25c31b87752997177ff28240c785477dfc17e5db70647) |
-| The Sepolia transfer used as the proof | `0x19c528d3…bc88a1` | [Sepolia etherscan](https://sepolia.etherscan.io/tx/0x19c528d3175bfc9d7cd0b1b7285fa07113054c5585eb8dead195b977edbc88a1) |
-| Draw refused on chain after the breach (status: **failed**) | `0xb62ce5ed…969fbfa` | [lending adapter](https://creditcoin-testnet.blockscout.com/tx/0xb62ce5ed691e7521c2c05430c1fc8c5069d42ff649dc0db7680056df8969fbfa) |
-| Replayed counterexample refused (status: **failed**) | `0x65a8bc7f…772be7` | [challenge manager](https://creditcoin-testnet.blockscout.com/tx/0x65a8bc7f34a90538964342617ca75cc097f7d1bc3cbdd1c6e650898cb9772be7) |
-| An honest position settling | `0x508dc45c…5273b2` | [engine](https://creditcoin-testnet.blockscout.com/tx/0x508dc45c0a7b613813bec6f84aea4b4ca506f2b4a06fe0a7d3ebfeb78c5273b2) |
+| Position #13 bought, bond locked | `0x376632ab…df588d` | [market](https://creditcoin-testnet.blockscout.com/tx/0xeb179c78ad03810bc80e239ecbda5929d339632258470ee862d5be18cd753c9f) |
+| 500 drawn against it | `0x8f7d01de…3996d6` | [lending adapter](https://creditcoin-testnet.blockscout.com/tx/0xee7a68c5f4055832c0c552508ce2c0953dde6bf9c02baa6afdd55cd4a521ef44) |
+| **Counterexample proven, bond seized** | `0x2f864705…b70647` | [challenge manager](https://creditcoin-testnet.blockscout.com/tx/0xe4b2311756815b206d308e4b4c40915c9b53655cf76a53b1a7d0a1adb456db99) |
+| The Sepolia transfer used as the proof | `0x19c528d3…bc88a1` | [Sepolia etherscan](https://sepolia.etherscan.io/tx/0xb231b241066865ba30aa0cd21a178a1070b31d0002768f8387625729f8626925) |
+| Draw refused on chain after the breach (status: **failed**) | `0xb62ce5ed…969fbfa` | [lending adapter](https://creditcoin-testnet.blockscout.com/tx/0xee7a68c5f4055832c0c552508ce2c0953dde6bf9c02baa6afdd55cd4a521ef44) |
+| Replayed counterexample refused (status: **failed**) | `0x65a8bc7f…772be7` | [challenge manager](https://creditcoin-testnet.blockscout.com/tx/0xf30630e8a0f5d2a550c762067bc7f19cf7ee4b0b9a1eb7edff8a4bd666f9c25f) |
+| An honest position settling | `0x508dc45c…5273b2` | [engine](https://creditcoin-testnet.blockscout.com/tx/0x93bdf6cbbd31ec0353516773ffc316c279c1a756fd87f07e503d416d10806d15) |
 
 You do not have to take the app's word for the position state. Read it directly:
 
 ```bash
-cast call 0xca5e3b0076673cd64a1655221305e66f2056d2bb \
+cast call 0x134476ff6d5efb0b422dcd3b92dcd61413880d92 \
   "getCoverage(uint256)((uint256,address,address,uint64,uint64,uint64,uint64,uint64,uint256,uint256,uint256,uint256,uint256,address,bytes32,address,bytes32,uint8,uint64,bytes32))" \
   13 --rpc-url https://rpc.cc3-testnet.creditcoin.network
 ```
