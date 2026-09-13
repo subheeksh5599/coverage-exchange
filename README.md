@@ -10,6 +10,8 @@ Built for **BUIDL CTC 2026 Fall** (Creditcoin & Credit Labs, Attestcoin Protocol
 Connect a wallet, buy or provide coverage on Creditcoin CC3, draw credit against it, and disprove a
 claim with a proven counterexample. Every button signs a real transaction; nothing is seeded.
 
+**Deck:** [`docs/deck/coverage-exchange-deck.pdf`](docs/deck/coverage-exchange-deck.pdf) — 9 slides.
+
 ---
 
 ## 1. The problem
@@ -359,6 +361,7 @@ web/                            Next.js app — landing (/) and the console (/da
   public/product/*.png          real captures of the console, used on the landing page
 docs/                           ATTESTCOIN.md, ECONOMICS.md, COMPARISON.md, INTEGRATION.md,
                                 GAS.md, DEMO.md, JUDGE-PACKET.md, SUBMISSION.md, ROADMAP.md
+docs/deck/                      coverage-exchange-deck.pdf, built from deck.typ (9 slides, 16:9)
 INVARIANTS.md  SECURITY.md      the numbered invariants and the threat model
 ```
 
