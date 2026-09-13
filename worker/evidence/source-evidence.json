@@ -1,16 +1,22 @@
 {
-  "sourceTx": "0x19c528d3175bfc9d7cd0b1b7285fa07113054c5585eb8dead195b977edbc88a1",
-  "sourceBlock": 11671180,
-  "txIndex": 2,
+  "sourceTx": "0xb231b241066865ba30aa0cd21a178a1070b31d0002768f8387625729f8626925",
+  "sourceBlock": 11696257,
+  "txIndex": 0,
   "status": 1,
-  "contract": "0x1c7d4b196cb0c7b01d743fbc6116a902379c7238",
+  "contract": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
   "eventSignature": "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef",
   "eventName": "Transfer(address,address,uint256)",
-  "from": "0xFf304193b4694b3c374CdebcCec8A60Cb5A87107",
-  "to": "0xfe3A58A4fBd2755630E341A28006989aD08CD01d",
-  "value": "100000000",
-  "toAddressLabel": "candidate prohibited recipient",
-  "tokenDecimals": null,
-  "gasUsed": "100400",
-  "sender": "0xFf304193b4694b3c374CdebcCec8A60Cb5A87107"
+  "from": "0x319dd63e0ac72e7ac74443029d074032c043460f",
+  "to": "0x4f71d6c82e014f71047fab9eb57283131e0ce613",
+  "value": "20000000",
+  "toAddressLabel": "prohibited recipient (declared by the coverage position)",
+  "tokenDecimals": 6,
+  "gasUsed": "45059",
+  "sender": "0x319dd63e0ac72e7ac74443029d074032c043460f",
+  "_note": "A real Sepolia USDC transfer chosen so that a coverage window containing it is still inside the attested band. Selected by worker/scripts/find-live-counterexample.mjs, which reads the frontier from ChainInfo rather than assuming a height.",
+  "_superseded": {
+    "sourceTx": "0x19c528d3175bfc9d7cd0b1b7285fa07113054c5585eb8dead195b977edbc88a1",
+    "sourceBlock": 11671180,
+    "why": "its window is ~24,000 attestation blocks old and now expires on purchase"
+  }
 }

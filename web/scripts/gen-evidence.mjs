@@ -109,6 +109,7 @@ export const CONTRACTS = {
   market: ${JSON.stringify(need(c, "coverageMarket"))},
   challengeManager: ${JSON.stringify(need(c, "challengeManager"))},
   lendingAdapter: ${JSON.stringify(need(c, "lendingAdapter"))},
+  offerRegistry: ${JSON.stringify(need(c, "offerRegistry"))},
   predicateProhibitedRecipient: ${JSON.stringify(need(c, "predicateProhibitedRecipient"))},
   predicateAmountAboveLimit: ${JSON.stringify(need(c, "predicateAmountAboveLimit"))},
   predicateAmountBelowFloor: ${JSON.stringify(need(c, "predicateAmountBelowFloor"))},

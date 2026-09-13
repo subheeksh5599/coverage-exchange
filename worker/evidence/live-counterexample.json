@@ -1,0 +1,21 @@
+{
+  "tool": "node scripts/find-live-counterexample.mjs",
+  "what": "a real Sepolia USDC transfer inside a window that is attested but not yet expired",
+  "chainKey": 1,
+  "frontier": 11696560,
+  "sourceTx": "0xb231b241066865ba30aa0cd21a178a1070b31d0002768f8387625729f8626925",
+  "sourceBlock": 11696257,
+  "txIndex": 0,
+  "contract": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
+  "eventSignature": "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef",
+  "eventName": "Transfer(address,address,uint256)",
+  "from": "0x319dd63e0ac72e7ac74443029d074032c043460f",
+  "to": "0x4f71d6c82e014f71047fab9eb57283131e0ce613",
+  "value": "20000000",
+  "prohibitedRecipient": "0x4f71d6c82e014f71047fab9eb57283131e0ce613",
+  "startBlock": 11696207,
+  "endBlock": 11696307,
+  "requiredDepth": 32,
+  "lookback": 1200,
+  "width": 100
+}

@@ -1,0 +1,71 @@
+{
+  "tool": "node scripts/market-loop.mjs",
+  "what": "the market loop through the offer path on the live deployment",
+  "deployment": {
+    "token": "0x52474e7bf6d210775c1d5051f2141b0242387e31",
+    "engine": "0x134476ff6d5efb0b422dcd3b92dcd61413880d92",
+    "market": "0x6e7104ca5c114dd8b2656a4ae3b138b7ea81d5a6",
+    "registry": "0xe796eab609fa01d1c8293d5a8fddfe5a03bc012b",
+    "lending": "0x0030b013cc9fa3c49fd62306ce679d1419beadfb",
+    "challenge": "0xba898a248e478976b2513b6ae1adde2fb498b451"
+  },
+  "offerId": "2",
+  "coverageId": "2",
+  "window": {
+    "startBlock": 11696207,
+    "endBlock": 11696307,
+    "chainKey": 1
+  },
+  "sourceTx": "0xb231b241066865ba30aa0cd21a178a1070b31d0002768f8387625729f8626925",
+  "sourceBlock": 11696257,
+  "drawAmount": "500000000",
+  "status": "BREACHED",
+  "challengeKey": "0xd715f9229a910f48ecfd21ca10252bc084751c9814e2202b013f7fb74c695d86",
+  "transactions": [
+    {
+      "label": "BOB draws 500",
+      "hash": "0xafee8dc5f636e9883a4c3ffb7856ca8155a5bac7a729aaf735ae92bb54b6678a",
+      "status": "success",
+      "block": 5481341
+    },
+    {
+      "label": "CAROL challenges",
+      "hash": "0xf30630e8a0f5d2a550c762067bc7f19cf7ee4b0b9a1eb7edff8a4bd666f9c25f",
+      "status": "success",
+      "block": 5481342
+    }
+  ],
+  "checks": [
+    {
+      "label": "BOB draws 500",
+      "ok": true
+    },
+    {
+      "label": "draw released credit",
+      "ok": true
+    },
+    {
+      "label": "preview says it would breach",
+      "ok": true
+    },
+    {
+      "label": "CAROL challenges",
+      "ok": true
+    },
+    {
+      "label": "position breached",
+      "ok": true
+    },
+    {
+      "label": "bond paid to challenger",
+      "ok": true
+    },
+    {
+      "label": "draw against a breached position",
+      "ok": true,
+      "reverted": "execution reverted (unknown custom error)"
+    }
+  ],
+  "checksPassed": 7,
+  "checksTotal": 7
+}

@@ -1,61 +1,61 @@
 {
-  "generatedAt": "2026-09-10T10:23:47.555Z",
+  "generatedAt": "2026-09-13T15:07:46.588Z",
   "dryRun": false,
   "steps": [
     {
       "step": "faucet ALICE",
-      "tx": "0x155abdc97c153aa9e51afe0b91c992c14f3c043ba726ba99c10c542e716ea96c",
-      "extra": "block 5462989 gas 38206"
+      "tx": "0x85b07752164f6a7689d16c26bb2a31d32780075ae0410ef063a33217c6b9a365",
+      "extra": "block 5481371 gas 38206"
     },
     {
       "step": "faucet BOB",
-      "tx": "0xa1dc1026cd22edf0bf731597d59925efcebc4d5bca8169a2b3b667793c909f27",
-      "extra": "block 5462990 gas 38206"
+      "tx": "0x74d471a81d9b5e3214bbf6892a76dde98b09c0395b1af79a90575e89eebcd6d2",
+      "extra": "block 5481372 gas 38206"
     },
     {
       "step": "faucet LENDER",
-      "tx": "0xfb0818fce8da6db0509eb8c16f76ecc636dafa555b75c6c56cb116b5f9b43292",
-      "extra": "block 5462991 gas 38206"
+      "tx": "0x3b142f6d51b6a55a88dd7161b2e431fc2ad8ed7884daf9f0ae9ab34a84bbafb4",
+      "extra": "block 5481373 gas 38206"
     },
     {
       "step": "BOB approves the engine",
-      "tx": "0x96099488cb2fc8d61478580cbb1ac9d43a69843ff8248c106f0d31171355875d",
-      "extra": "block 5462992 gas 37030"
+      "tx": "0x7cee5a30a0d5eac01471910249930110f2e139fb1983ec82d88f06480e049dfc",
+      "extra": "block 5481374 gas 46274"
     },
     {
       "step": "BOB deposits bond capital",
-      "tx": "0xf22e94ab103c1f2592aaec814ea4aa57719165b4e59d788c176ef58233e68189",
-      "extra": "block 5462993 gas 155596"
+      "tx": "0xcddbcfc96dd2988c56bae036547f005cd01f35dbaf875733a83777cb96dd7fc4",
+      "extra": "block 5481375 gas 178262"
     },
     {
       "step": "ALICE approves the pool (for repayment)",
-      "tx": "0xd02c2cbd7f2441831d71b04bdefd17d8ac24de1bc36460b577a165c80fd27ec8",
-      "extra": "block 5462994 gas 37030"
+      "tx": "0x81843b11f773a3fd9beb1794e5a848783301570e6a8d44c482dcedf05838ec97",
+      "extra": "block 5481376 gas 46262"
     },
     {
       "step": "LENDER approves the pool (for repayment)",
-      "tx": "0x2bd679f8b65f99651df718fadb4149fe22cafa1d6c2d159bedc093d3d1b4d943",
-      "extra": "block 5462995 gas 37030"
+      "tx": "0xe96912ed01a2cdb17a4a8518bca394feb6817b84189cc1fbf1273b942880b105",
+      "extra": "block 5481377 gas 37030"
     },
     {
       "step": "LENDER funds liquidity",
-      "tx": "0x21b7a644a2211c0a329880fa9b162cf077ef1e8dcf15addda646587706cf05d8",
-      "extra": "block 5462996 gas 96390"
+      "tx": "0x2b7ca0955219a42b6ed4547b7916a6bf7e741df5753007a7ee3a5593c57bf8d3",
+      "extra": "block 5481378 gas 96390"
     },
     {
       "step": "ALICE approves the market",
-      "tx": "0xaadb9a38e53e6c92f55bc0324d646c48a2d1b0111b4604ffdd727b9c38a77d93",
-      "extra": "block 5462997 gas 37030"
+      "tx": "0xdc7a298472f8b6dfa5abc2a9a3fcd2b8399c666466b041f6c814590982ca2033",
+      "extra": "block 5481379 gas 46274"
     },
     {
       "step": "ALICE buys coverage",
-      "tx": "0x1a9aece9e5b5cfea1ca86554ea6d02d73f427fdfce8ecee05b302dbb1a9ed0a5",
-      "extra": "block 5462998 gas 371652"
+      "tx": "0x33373409bd9c0ee92f3f918896b313446c0a54b41eaa5e6d8ff48d2618416217",
+      "extra": "block 5481380 gas 461415"
     },
     {
       "step": "coverage created",
       "tx": null,
-      "extra": "id=10 status=0 window=[11671130,11671230] bond=12000000000 predicateParams=0x000000000000000000000000fe3a58a4fbd2755630e341a28006989ad08cd01d"
+      "extra": "id=3 status=0 window=[11696207,11696307] bond=12000000000 predicateParams=0x0000000000000000000000004f71d6c82e014f71047fab9eb57283131e0ce613"
     },
     {
       "step": "isValid",
@@ -69,8 +69,8 @@
     },
     {
       "step": "ALICE draws against coverage",
-      "tx": "0x84c5783f762076fea37d6371c9ccd9ed7a926f7ad5124333392eed819dfe87be",
-      "extra": "block 5462999 gas 288092"
+      "tx": "0xee7a68c5f4055832c0c552508ce2c0953dde6bf9c02baa6afdd55cd4a521ef44",
+      "extra": "block 5481381 gas 310758"
     },
     {
       "step": "exposure recorded",
@@ -80,7 +80,7 @@
     {
       "step": "fetched real proof",
       "tx": null,
-      "extra": "height 11671180, 7 siblings, 21 continuity roots"
+      "extra": "height 11696257, 7 siblings, 44 continuity roots"
     },
     {
       "step": "previewChallenge (free, read-only)",
@@ -89,8 +89,8 @@
     },
     {
       "step": "CAROL challenges with the counterexample",
-      "tx": "0x5930a7e3e29f6394839dd34c6688a501778ad2b928c6877b95a44ecdd326686f",
-      "extra": "block 5463000 gas 396004"
+      "tx": "0xe4b2311756815b206d308e4b4c40915c9b53655cf76a53b1a7d0a1adb456db99",
+      "extra": "block 5481382 gas 426678"
     },
     {
       "step": "bond paid to the challenger",
@@ -100,7 +100,7 @@
     {
       "step": "coverage status",
       "tx": null,
-      "extra": "status=1 (BREACHED) challengeKey=0x0bc8d420e25e36e1d8a04b652d56fcecd172285fd43e399c72252fb46e9df272"
+      "extra": "status=1 (BREACHED) challengeKey=0xce90c71ff12d09f0ce3848d3a42fd35b5b269f804a78f8ddbb136b34e747df8c"
     },
     {
       "step": "isValid after breach",
@@ -119,18 +119,18 @@
     },
     {
       "step": "ALICE buys a second position",
-      "tx": "0x72fca7de0c524f96a72184f521e56a5dc665ef795cd7c523502664525ecba2d6",
-      "extra": "block 5463001 gas 371652"
+      "tx": "0xce0261ff5524a7386911199e5bba767b6f7ad581f662a72b92d62b2615f2f5c2",
+      "extra": "block 5481383 gas 461415"
     },
     {
       "step": "ALICE draws part of it",
-      "tx": "0xf7bd5dd96c0cf26473cdbb75ca22027b298fbbc6ce89285fb1aa590fb7748869",
-      "extra": "block 5463002 gas 288092"
+      "tx": "0x1196c3a07dd11c41266446d87eadb6705888b55817ec8dfdce6a89851a421a1c",
+      "extra": "block 5481384 gas 310758"
     },
     {
       "step": "ALICE repays, freeing capacity",
-      "tx": "0x4401c55ca230dbd3ce39ea65e280a32b33380f91b5d66aeef1bcefdc4c93ff1a",
-      "extra": "block 5463003 gas 211778"
+      "tx": "0xe28ce4a4981046f3b358db2e974fdbb0a62d41a39e0201b5825535177c8d842c",
+      "extra": "block 5481385 gas 234444"
     },
     {
       "step": "window attested at the required depth",
@@ -139,13 +139,13 @@
     },
     {
       "step": "anyone settles the clean position",
-      "tx": "0x508dc45c0a7b613813bec6f84aea4b4ca506f2b4a06fe0a7d3ebfeb78c5273b2",
-      "extra": "block 5463004 gas 181412"
+      "tx": "0x93bdf6cbbd31ec0353516773ffc316c279c1a756fd87f07e503d416d10806d15",
+      "extra": "block 5481386 gas 208950"
     },
     {
       "step": "bond released back to the underwriter",
       "tx": null,
-      "extra": "free balance +12000 cxTUSD, locked bond 36000 -> 24000"
+      "extra": "free balance +12000 cxTUSD, locked bond 12000 -> 0"
     },
     {
       "step": "second position status",
@@ -153,44 +153,50 @@
       "extra": "status=3 (SETTLED)"
     }
   ],
-  "coverageId": "10",
-  "purchaseTx": "0x1a9aece9e5b5cfea1ca86554ea6d02d73f427fdfce8ecee05b302dbb1a9ed0a5",
+  "coverageId": "3",
+  "purchaseTx": "0x33373409bd9c0ee92f3f918896b313446c0a54b41eaa5e6d8ff48d2618416217",
   "coverage": {
     "borrower": "0xB886c3061444A295A21748Ed7aaF5C702df0410d",
     "underwriter": "0x70AE71478b1d96e40dAfA5a495D1B96e339Bd5ec",
     "window": [
-      11671130,
-      11671230
+      11696207,
+      11696307
     ],
     "maxExposure": "10000000000",
     "bond": "12000000000",
     "premium": "56000000",
     "status": 1,
-    "challengeKey": "0x0bc8d420e25e36e1d8a04b652d56fcecd172285fd43e399c72252fb46e9df272"
+    "challengeKey": "0xce90c71ff12d09f0ce3848d3a42fd35b5b269f804a78f8ddbb136b34e747df8c"
   },
   "evidence": {
-    "sourceTx": "0x19c528d3175bfc9d7cd0b1b7285fa07113054c5585eb8dead195b977edbc88a1",
-    "sourceBlock": 11671180,
-    "txIndex": 2,
+    "sourceTx": "0xb231b241066865ba30aa0cd21a178a1070b31d0002768f8387625729f8626925",
+    "sourceBlock": 11696257,
+    "txIndex": 0,
     "status": 1,
-    "contract": "0x1c7d4b196cb0c7b01d743fbc6116a902379c7238",
+    "contract": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
     "eventSignature": "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef",
     "eventName": "Transfer(address,address,uint256)",
-    "from": "0xFf304193b4694b3c374CdebcCec8A60Cb5A87107",
-    "to": "0xfe3A58A4fBd2755630E341A28006989aD08CD01d",
-    "value": "100000000",
-    "toAddressLabel": "candidate prohibited recipient",
-    "tokenDecimals": null,
-    "gasUsed": "100400",
-    "sender": "0xFf304193b4694b3c374CdebcCec8A60Cb5A87107"
+    "from": "0x319dd63e0ac72e7ac74443029d074032c043460f",
+    "to": "0x4f71d6c82e014f71047fab9eb57283131e0ce613",
+    "value": "20000000",
+    "toAddressLabel": "prohibited recipient (declared by the coverage position)",
+    "tokenDecimals": 6,
+    "gasUsed": "45059",
+    "sender": "0x319dd63e0ac72e7ac74443029d074032c043460f",
+    "_note": "A real Sepolia USDC transfer chosen so that a coverage window containing it is still inside the attested band. Selected by worker/scripts/find-live-counterexample.mjs, which reads the frontier from ChainInfo rather than assuming a height.",
+    "_superseded": {
+      "sourceTx": "0x19c528d3175bfc9d7cd0b1b7285fa07113054c5585eb8dead195b977edbc88a1",
+      "sourceBlock": 11671180,
+      "why": "its window is ~24,000 attestation blocks old and now expires on purchase"
+    }
   },
   "proof": {
-    "headerNumber": 11671180,
-    "txIndex": 2,
-    "merkleRoot": "0x856d478c06f17b76066b8dd93f59a000a151df655f220754874874eb1b76b5c3"
+    "headerNumber": 11696257,
+    "txIndex": 1,
+    "merkleRoot": "0x18018037e3932d99deb5715cbafde5e0fe6e7f613bb3d369fddf227ce6366833"
   },
   "settlement": {
-    "coverageId": "11",
+    "coverageId": "4",
     "status": 3
   }
 }

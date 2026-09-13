@@ -11,12 +11,15 @@ import { useWallet } from "@/lib/wallet";
 import { useActions, fetchProof, previewChallenge, type ProofBundle } from "@/lib/actions";
 import { SOURCE_CHAIN_LABEL } from "@/lib/chain";
 import { useFrontier, usePositions, money } from "@/lib/protocol";
+import { SEPOLIA_COUNTEREXAMPLE } from "@/lib/chain";
 import { Panel, Field, Notice, TxButton, Loading, ReadError, Addr, Pill, StatusPill } from "@/components/ui";
 import { predicateName } from "@/components/PositionsTable";
 
-// The real counterexample from the recorded run: a Sepolia transfer to an address the
-// position declared prohibited, at a block inside its window.
-const RECORDED_TX = "0x19c528d3175bfc9d7cd0b1b7285fa07113054c5585eb8dead195b977edbc88a1";
+// The recorded counterexample comes from the generated evidence, not a literal: the window it
+// belongs to has to sit inside the attested band, and that moves forward with the chain. A
+// hardcoded hash here silently becomes a transaction outside the covered window — which is exactly
+// what the preflight would then refuse.
+const RECORDED_TX = SEPOLIA_COUNTEREXAMPLE.tx;
 
 export default function ChallengePage() {
   const { address } = useWallet();
@@ -25,7 +28,7 @@ export default function ChallengePage() {
   const frontier = useFrontier();
 
   const [coverageId, setCoverageId] = useState("");
-  const [txHash, setTxHash] = useState(RECORDED_TX);
+  const [txHash, setTxHash] = useState<string>(RECORDED_TX);
   const [bundle, setBundle] = useState<ProofBundle | null>(null);
   const [fetchedFor, setFetchedFor] = useState<string | null>(null);
   const [fetchErr, setFetchErr] = useState<string | null>(null);

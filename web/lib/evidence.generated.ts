@@ -10,36 +10,37 @@
 export const GENERATED_AT = "2026-09-10" as const;
 
 export const CONTRACTS = {
-  token: "0x7bde1e22355677cf4ac461fec92f534dda2117b7",
-  adapter: "0x5800fe651f37fc22ba0ce5e5b407c0b88a59ca63",
-  engine: "0xca5e3b0076673cd64a1655221305e66f2056d2bb",
-  market: "0xb4569dc8827a8e573f2bb34b7f68a7ecf078b0e1",
-  challengeManager: "0x5218279fd26e9b544c27e21acb1bfc9e325a5937",
-  lendingAdapter: "0xf6931e84078c7fffc4f24c18bb15850ce7a1d967",
-  predicateProhibitedRecipient: "0x52a200d46c73695c746c31d76f9150a22c20fca1",
-  predicateAmountAboveLimit: "0xba7469150da333bb8d2848e1a86aa80c212011ef",
-  predicateAmountBelowFloor: "0x6728d18271470ea888ae23df99fcf4a70f3a3b2b",
+  token: "0x52474e7bf6d210775c1d5051f2141b0242387e31",
+  adapter: "0x85bc11a15c2c6387590f16c32683bc92d8254d25",
+  engine: "0x134476ff6d5efb0b422dcd3b92dcd61413880d92",
+  market: "0x6e7104ca5c114dd8b2656a4ae3b138b7ea81d5a6",
+  challengeManager: "0xba898a248e478976b2513b6ae1adde2fb498b451",
+  lendingAdapter: "0x0030b013cc9fa3c49fd62306ce679d1419beadfb",
+  offerRegistry: "0xe796eab609fa01d1c8293d5a8fddfe5a03bc012b",
+  predicateProhibitedRecipient: "0xe84561ffa91c067823abb8d713c5a41eb13b1412",
+  predicateAmountAboveLimit: "0xf4dbf50c5d00607a9fb0fb357ca4b8ab558e38cf",
+  predicateAmountBelowFloor: "0x954af4f87c623a103d76cab64ece21e808f38dcd",
 } as const;
 
 export const EXPLORER_ADDRESS = "https://creditcoin-testnet.blockscout.com/address/" as const;
 export const EXPLORER_TX = "https://creditcoin-testnet.blockscout.com/tx/" as const;
 
 export const DEMO_TXS = {
-  underwriterDeposit: "0xf22e94ab103c1f2592aaec814ea4aa57719165b4e59d788c176ef58233e68189",
-  liquidityDeposit: "0x21b7a644a2211c0a329880fa9b162cf077ef1e8dcf15addda646587706cf05d8",
-  purchase: "0x1a9aece9e5b5cfea1ca86554ea6d02d73f427fdfce8ecee05b302dbb1a9ed0a5",
-  draw: "0x84c5783f762076fea37d6371c9ccd9ed7a926f7ad5124333392eed819dfe87be",
-  counterexample: "0x5930a7e3e29f6394839dd34c6688a501778ad2b928c6877b95a44ecdd326686f",
-  secondPurchase: "0x72fca7de0c524f96a72184f521e56a5dc665ef795cd7c523502664525ecba2d6",
-  repay: "0x4401c55ca230dbd3ce39ea65e280a32b33380f91b5d66aeef1bcefdc4c93ff1a",
-  settlement: "0x508dc45c0a7b613813bec6f84aea4b4ca506f2b4a06fe0a7d3ebfeb78c5273b2",
+  underwriterDeposit: "0xcddbcfc96dd2988c56bae036547f005cd01f35dbaf875733a83777cb96dd7fc4",
+  liquidityDeposit: "0x2b7ca0955219a42b6ed4547b7916a6bf7e741df5753007a7ee3a5593c57bf8d3",
+  purchase: "0x33373409bd9c0ee92f3f918896b313446c0a54b41eaa5e6d8ff48d2618416217",
+  draw: "0xee7a68c5f4055832c0c552508ce2c0953dde6bf9c02baa6afdd55cd4a521ef44",
+  counterexample: "0xe4b2311756815b206d308e4b4c40915c9b53655cf76a53b1a7d0a1adb456db99",
+  secondPurchase: "0xce0261ff5524a7386911199e5bba767b6f7ad581f662a72b92d62b2615f2f5c2",
+  repay: "0xe28ce4a4981046f3b358db2e974fdbb0a62d41a39e0201b5825535177c8d842c",
+  settlement: "0x93bdf6cbbd31ec0353516773ffc316c279c1a756fd87f07e503d416d10806d15",
   failedDrawAfterBreach: "0xb62ce5ed691e7521c2c05430c1fc8c5069d42ff649dc0db7680056df8969fbfa",
   failedReplay: "0x65a8bc7f34a90538964342617ca75cc097f7d1bc3cbdd1c6e650898cb9772be7",
 } as const;
 
 export const COVERAGE_IDS = {
-  breached: "10",
-  settled: "11",
+  breached: "3",
+  settled: "4",
 } as const;
 
 export const ATTACKS = [
@@ -127,8 +128,8 @@ export const MEASURED = {
   liveChecks: 7,
   liveChecksTotal: 7,
   deployChecks: 19,
-  contractsVerified: 9,
-  contractsTotal: 9,
+  contractsVerified: 10,
+  contractsTotal: 10,
   batchSaving5: 30.1,
   batchSaving10: 22.5,
   demoSeconds: 225,
@@ -147,7 +148,7 @@ export const MEASURED = {
 } as const;
 
 export const SOURCE_EVIDENCE = {
-  "tx": "0x19c528d3175bfc9d7cd0b1b7285fa07113054c5585eb8dead195b977edbc88a1",
-  "block": 11671180,
+  "tx": "0xb231b241066865ba30aa0cd21a178a1070b31d0002768f8387625729f8626925",
+  "block": 11696257,
   "explorer": "https://sepolia.etherscan.io/tx/"
 } as const;

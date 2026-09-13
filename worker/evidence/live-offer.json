@@ -1,0 +1,24 @@
+{
+  "tool": "node scripts/publish-live-offer.mjs",
+  "offerId": "4",
+  "underwriter": "0xB886c3061444A295A21748Ed7aaF5C702df0410d",
+  "tx": "0x65653367dc1bffeef554233ea9f67aa5d2743fb6288e6f0f8e0a78c886128596",
+  "terms": {
+    "chainKey": 1,
+    "requiredDepth": 32,
+    "maxExposure": "10000000000",
+    "bond": "12000000000",
+    "windowBlocks": 100,
+    "sourceContract": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
+    "eventSignature": "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef",
+    "predicate": "0xe84561ffa91c067823abb8d713c5a41eb13b1412",
+    "predicateParams": "0x0000000000000000000000004f71d6c82e014f71047fab9eb57283131e0ce613",
+    "tranche": 0
+  },
+  "counterexample": {
+    "tx": "0xb231b241066865ba30aa0cd21a178a1070b31d0002768f8387625729f8626925",
+    "block": 11696257,
+    "prohibitedRecipient": "0x4f71d6c82e014f71047fab9eb57283131e0ce613"
+  },
+  "startBlockToReproduce": 11696207
+}

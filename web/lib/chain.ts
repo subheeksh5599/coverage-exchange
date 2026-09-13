@@ -36,10 +36,11 @@ export const ADDR = {
     CONTRACTS.challengeManager) as `0x${string}`,
   lendingAdapter: (process.env.NEXT_PUBLIC_LENDING_ADAPTER_ADDRESS ??
     CONTRACTS.lendingAdapter) as `0x${string}`,
-  // Offer registry is a new module — the current recorded deployment predates it, so the address
-  // defaults to the zero address until a redeploy. Guard call sites against this in the UI.
+  // The market layer is now part of the recorded deployment, so this is a real address. The zero
+  // address remains representable for a deployment that predates OfferRegistry, which is why the
+  // call sites still guard against it rather than assuming it is set.
   offerRegistry: (process.env.NEXT_PUBLIC_OFFER_REGISTRY_ADDRESS ??
-    "0x0000000000000000000000000000000000000000") as `0x${string}`,
+    CONTRACTS.offerRegistry) as `0x${string}`,
   token: (process.env.NEXT_PUBLIC_TOKEN_ADDRESS ?? CONTRACTS.token) as `0x${string}`,
   predicates: {
     prohibitedRecipient: CONTRACTS.predicateProhibitedRecipient as `0x${string}`,
