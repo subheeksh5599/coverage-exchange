@@ -1,424 +1,333 @@
-# Coverage Exchange
+<div align="center">
 
-**Bonded cross-chain coverage over attested state windows — and anyone can destroy a false claim with one counterexample.**
+# COVERAGE EXCHANGE
 
-A lender should not have to trust that a borrower stayed inside a risk policy on another chain. Coverage Exchange turns that trust into a position: an underwriter bonds capital behind a claim about a range of source-chain history, a lender releases exposure only while that position is valid, and any participant who proves a single contradictory transaction inside the covered range takes the bond — atomically, in one transaction, with no committee, no dispute window and no admin.
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Tests](https://img.shields.io/badge/tests-71%20passing-10b981)](#tests)
+[![Contracts](https://img.shields.io/badge/contracts-9%20verified-8957e5)](https://creditcoin-testnet.blockscout.com/address/0xca5e3b0076673cd64a1655221305e66f2056d2bb)
+[![Chain](https://img.shields.io/badge/chain-Creditcoin%20CC3%20testnet-1f6feb)](https://creditcoin.org)
+[![Attestcoin](https://img.shields.io/badge/attestation-Attestcoin%20precompiles-f59e0b)](https://docs.attestcoin.org)
+![Stack](https://img.shields.io/badge/Solidity%20%C2%B7%20Foundry%20%C2%B7%20Next.js%2016%20%C2%B7%20viem-1f1f23)
 
-Built for **BUIDL CTC 2026 Fall** (Creditcoin & Credit Labs, Attestcoin Protocol theme).
+### Bonded coverage for cross-chain credit — a claim about another chain that costs the bond when it is false.
 
-**Live:** <https://coverage-exchange.vercel.app> — landing page at `/`, console at `/dashboard`.
-Connect a wallet, buy or provide coverage on Creditcoin CC3, draw credit against it, and disprove a
-claim with a proven counterexample. Every button signs a real transaction; nothing is seeded.
+A lender on Creditcoin extends credit against collateral that lives on another chain. Today it cannot see that chain, so it either trusts a report or lends so little the report stops mattering. A report costs the person writing it nothing when it is wrong.
 
-**Deck:** [`docs/deck/coverage-exchange-deck.pdf`](docs/deck/coverage-exchange-deck.pdf) — 9 slides.
+This replaces the report with a position that has money behind it. An underwriter locks a bond behind a claim about a range of source-chain blocks. A lender releases exposure only while that claim holds. Anyone who proves one contradicting transaction inside the range takes the whole bond, in the same transaction, with no committee and no dispute window.
+
+The bond is always at least the exposure, so breaching on purpose never pays — that is the invariant the whole thing rests on. Built on **Creditcoin CC3** with the **Attestcoin** block prover, for the **BUIDL CTC 2026 Fall** hackathon.
+
+**[ Live demo ↗ ](https://coverage-exchange.vercel.app)** &nbsp;·&nbsp; **[ The live receipts ↗ ](#the-live-receipts)** &nbsp;·&nbsp; **[ How it works ↗ ](#the-coverage-position-step-by-step)** &nbsp;·&nbsp; **[ Run it locally ↗ ](#run-it-locally)**
+
+</div>
 
 ---
 
-## 1. The problem
+## Table of contents
 
-Cross-chain credit has a hole in the middle of it. The lender's collateral and behaviour live on one chain; the credit lives on Creditcoin. Today the lender picks one of two bad options:
+- [The problem I set out to solve](#the-problem-i-set-out-to-solve)
+- [What I built](#what-i-built)
+- [Architecture](#architecture)
+- [The coverage position, step by step](#the-coverage-position-step-by-step)
+- [How I integrated Attestcoin](#how-i-integrated-attestcoin)
+- [On-chain enforcement (Creditcoin CC3)](#on-chain-enforcement-creditcoin-cc3)
+- [Engineering decisions & the hard problems](#engineering-decisions--the-hard-problems)
+- [What's real vs mock — the honesty table](#whats-real-vs-mock--the-honesty-table)
+- [The live receipts](#the-live-receipts)
+- [The app](#the-app)
+- [Tech stack](#tech-stack)
+- [Project layout](#project-layout)
+- [Run it locally](#run-it-locally)
+- [How I'd deploy it](#how-id-deploy-it)
+- [Tests](#tests)
+- [Limitations](#limitations)
+- [Non-goals](#non-goals)
+- [Licence](#licence)
 
-- **trust a report** — the borrower's indexer, a risk API, an oracle operator. Every one of them is a single point of failure, and none of them loses money when they are wrong; or
-- **lend so little it doesn't matter** — which is why undercollateralised cross-chain credit barely exists.
+---
 
-The missing piece is not more data. It is **a way to make a claim about cross-chain state cost money when it is false**.
+## The problem I set out to solve
 
-## 2. The primitive
+Cross-chain lending has a visibility problem that no amount of better reporting fixes. The collateral is on one chain, the credit is on another, and the lending chain has no way to read the other one. So the lender asks someone else what happened, and that someone has no money at stake in the answer.
 
-A **coverage position** is bonded capital standing behind a claim about a range of source-chain blocks:
+Two failure modes follow. Either the lender believes the report, which means the loan is only as good as the reporter's honesty — or the lender lends a fraction small enough that being wrong does not hurt, which means the borrower is under-served by design. There is no third option where the lender gets to be wrong-proof and the borrower gets real size.
 
-> This borrower may unlock up to `E` of exposure only while the source chain's attested frontier covers the window `[startBlock, endBlock]` at `requiredDepth`, and **no counterexample has been proven against it**.
+The insight is that the problem is not *information*, it is **accountability**. A claim about another chain is only worth something if being wrong is expensive. So I made the claim itself the collateral: the design rule for everything here is **a coverage position is a claim with a bond behind it, and the bond is at least the exposure it unlocks.**
 
-Three roles, each with a reason to be honest:
+That single rule does a lot of work. It caps the loss on a false claim to what the underwriter staked. It makes lying strictly unprofitable, because a successful challenge always pays more than the position was worth. It removes the need for a committee to adjudicate anything, because the payout is arithmetic. And it means the only thing the protocol has to be good at is verifying one transaction, which is a problem Attestcoin already solved.
 
-| Actor | Wants | Loses if wrong |
-|---|---|---|
-| **Borrower** | the credit the position unlocks | loses coverage the moment it is breached, and it paid the premium |
-| **Underwriter** | the premium | loses the whole bond to whoever proves the breach |
-| **Challenger** | the bond | spends gas; needs no permission, no stake, no allowlist |
+## What I built
 
-The chain adjudicates. There is no DAO vote, no claims adjuster, no admin override — see `INVARIANTS.md` I-09.
+A credit instrument where the right to draw depends on a claim nobody can fake:
 
-Above the primitive sits a **market**: underwriters publish standing offers with tranche and price
-(`OfferRegistry`); borrowers fill one, or aggregate several compatible offers into a single position
-backed by every contributor's bond (`purchaseAggregated`). Premiums respond to **utilization** — a
-lightly-used underwriter is cheaper than one whose book is full — and a **junior** tranche costs more
-and gets slashed first inside an aggregated basket. All of it is deterministic and reproducible; nothing
-is a locally-estimated number.
+1. **Buy** — a borrower picks an underwriter with free capital, sets the exposure, the source-chain window, and how deep the attestation must be, and pays a premium. The premium is priced by the protocol against the real window and depth, not by a table.
+2. **Bond** — on purchase the underwriter's capital is locked behind the position, at no less than the full exposure. The bond is the claim's collateral and the reason the claim means anything.
+3. **Draw** — a lender releases credit against the position, but only after the contract checks the claim still holds: the attested source-chain frontier still covers the window at the required depth, the window has not lapsed, and no counterexample has been proven.
+4. **Challenge** — anyone submits a source transaction hash that the position's predicate forbids. The contract proves it through the Attestcoin block prover, decodes the receipt, checks the emitter and event signature match what the position declared, and runs the predicate. If it passes, the position is breached and the bond moves to the challenger in the same transaction.
+5. **Settle** — if the window closes with no counterexample, the bond returns to the underwriter. The same code path decides both outcomes.
 
-## 3. The coverage invariant
+The whole thing is **live on testnet, not in a fixture**: nine contracts deployed and verified, real positions bought through the app, a real counterexample that breached a position, and two attack transactions that genuinely failed on chain.
 
-A position is valid for exposure `E` if and only if all of these hold, evaluated **at the moment of the draw**:
+**A note on what is honest about this.** The deployments, the positions, and every transaction hash below are real and resolve on the explorers. The Sepolia transaction used as the counterexample is a real 100 USDC transfer that I did not stage. But the token is a **faucet token, not a stablecoin**, the contracts are **not audited**, and the deployment predates the market-layer contracts — all three are in [the honesty table](#whats-real-vs-mock--the-honesty-table) rather than left for a reviewer to discover.
 
-```
-isValid(id)  iff
-      ChainInfo(chainKey).is_height_attested(endBlock + requiredDepth) is reachable
-  AND frontier <= liveUntilHeight            ( = endBlock + requiredDepth + grace )
-  AND status != BREACHED
-  AND status != SETTLED
-  AND drawn < maxExposure
-```
-
-and at creation:
-
-```
-bond >= maxExposure * coverageRatioBps / 10_000      (ratio floor 1.0x)
-capacity >= maxExposure
-freeBalance(underwriter) >= bond                      (the bond is actually locked)
-```
-
-Two of those conditions are the whole invention:
-
-- **the frontier condition** makes "the window was actually covered" checkable rather than asserted — the protocol's own `is_height_attested` predicate decides it, not a locally stored height;
-- **the bond ratio** is why breaching is never profitable: the money behind the promise always exceeds the money the promise unlocks.
-
-## 4. How it works
+## Architecture
 
 ```
-   SOURCE CHAIN (Ethereum Sepolia)                CREDITCOIN CC3 (chainId 102031)
-   ───────────────────────────────               ───────────────────────────────────────
-   emitted evidence inside the window  ──┐
-                                        │        ┌──────────────────────────────────┐
-                                        ├───────►│  ChainInfo precompile  0x0FD3    │ attested frontier
-                                        │        │  Block Prover precompile 0x0FD2  │ inclusion + continuity
-                                        │        └───────────────┬──────────────────┘
-                                        │                        │
-                                        │        ┌───────────────▼──────────────────┐
-                                        │        │  AttestcoinAdapter               │
-                                        │        │   tryFrontier / frontierReached  │
-                                        │        │   verifyInclusion (+ batch)      │
-                                        │        └───────────────┬──────────────────┘
-                                        │                        │
-                          ┌─────────────▼──────────┐   ┌─────────▼──────────┐
-                          │  ChallengeManager      │   │  CoverageEngine    │
-                          │  verify → decode →     │──►│  positions, bonds, │
-                          │  predicate → breach    │   │  contributors[],   │
-                          └────────────────────────┘   │  capacity, validity│
-                                                       └─────────┬──────────┘
-   ┌────────────────────┐   ┌──────────────────┐                 │
-   │  OfferRegistry     │──►│  CoverageMarket  │   ┌─────────────▼────────────┐
-   │  publish · fill ·  │   │  quote · purchase│   │  LendingAdapter          │
-   │  cancel · aggregate│   │  offer · basket  │   │  draw only if isValid()  │
-   └────────────────────┘   └──────────────────┘   └──────────────────────────┘
+                      ┌──────────────────────────────────────┐
+   source chain       │  Ethereum Sepolia                     │
+   (Sepolia, key 1)   │  collateral · borrower behaviour      │
+                      └───────────────┬──────────────────────┘
+                                      │  real transactions
+                                      │  (never a report)
+                      ┌───────────────▼──────────────────────┐
+   Creditcoin CC3     │  0x0FD2  Block Prover precompile     │
+   (chainId 102031)   │  0x0FD3  ChainInfo precompile        │
+                      └───────────────┬──────────────────────┘
+                                      │  verified receipt
+                      ┌───────────────▼──────────────────────┐
+                      │  AttestcoinAdapter                   │
+                      │  decode · check emitter · check sig   │
+                      └───────────────┬──────────────────────┘
+                                      │
+        ┌─────────────────────────────┼──────────────────────────────┐
+        │                             │                              │
+┌───────▼────────┐          ┌─────────▼──────────┐         ┌─────────▼────────┐
+│ CoverageMarket │          │  CoverageEngine    │◄────────┤ ChallengeManager │
+│ quotes · buys  │─────────►│  positions · bonds │         │ prove · breach   │
+└────────────────┘          │  isValid (computed)│         └──────────────────┘
+                            └─────────┬──────────┘
+                                      │ exposure gated by the claim
+                            ┌─────────▼──────────┐
+                            │  LendingAdapter    │
+                            │  pool · draw · repay│
+                            └────────────────────┘
 ```
 
-**Lifecycle.** Underwriter deposits capacity → publishes one or more offers on `OfferRegistry`
-(exposure, bond, tranche, window length, depth, target borrower or open) → borrower **fills** a single
-offer or **aggregates** several compatible ones (`purchaseAggregated` sums bonds into one position and
-locks each contributor's bond from its own engine deposit) → lender draws while the position is valid →
-the window closes and the frontier moves past `endBlock + requiredDepth` → either someone proves a
-counterexample (each contributor's bond flows to the challenger, junior first, in one transaction;
-position `BREACHED`; draws frozen) or the position settles and every contributor's bond is released.
+I designed this around a few typed contracts. Getting the boundaries right made the rest compose:
 
-**Expiry is computed, not scheduled.** Nothing flips a position to `EXPIRED`; `effectiveStatus()` derives it from the attested frontier on every read, so there is no keeper to bribe, forget or front-run.
+| Contract | Role |
+|---|---|
+| `ICoverage.Coverage` | The position: `borrower`, `underwriter`, `chainKey`, `startBlock`, `endBlock`, `requiredDepth`, `liveUntilHeight`, `maxExposure`, `capacity`, `drawn`, `bond`, `premium`, `predicate`, `predicateParams`, `sourceContract`, `eventSignature`, `status`. |
+| `ICoverage.Status` | `ACTIVE`, `BREACHED`, `EXPIRED`, `SETTLED`. Never stored as a mutable flag — `effectiveStatus()` recomputes it on every call. |
+| `IPredicate` | `evaluate(params, provenLog)`. A predicate sees **one** proven transaction and nothing else; that limit is deliberate and is documented in `SECURITY.md`. |
+| `Reason` | Every reason a draw can be refused, as a typed error rather than a string, so a caller never has to guess. |
 
-## 5. Attestcoin integration
+The predicate interface is the load-bearing one. The protocol does not try to be clever about what is true — it proves a single transaction and asks a small module whether that transaction violates the claim. Everything downstream is arithmetic.
 
-This is the part the event scores, so it is worth being exact. Two precompiles carry the whole protocol, and both are called through one auditable file (`contracts/src/AttestcoinAdapter.sol`):
+## The coverage position, step by step
 
-| Precompile | Address | Used for | Where |
-|---|---|---|---|
-| **ChainInfo** | `0x0000000000000000000000000000000000000fD3` | `is_height_attested`, `get_latest_attestation_height_and_hash` — the attested frontier | `AttestcoinAdapter.tryFrontier` / `frontierReached` |
-| **Block Prover** | `0x0000000000000000000000000000000000000FD2` | `verify` (view preflight), `verifyAndEmit` (single and **batch**), `calculateTxIndex` | `AttestcoinAdapter.preflightInclusion` / `verifyInclusion` / `verifyInclusionBatch` / `transactionIndex` |
+This is what happens from purchase to payout, and every step assumes the challenge is coming:
 
-Four details that matter and are easy to get wrong:
+1. **Quote** — `CoverageMarket.quote(...)` prices the position from the window length, the required depth, and the underwriter's utilisation. The quote is computed on chain every time the terms change; there is no client-side estimate that can drift from what the contract will charge.
+2. **Purchase** — the borrower pays the premium and the engine locks the underwriter's bond. The contract refuses to create the position if `bond < maxExposure`, which is the invariant applied at the only moment it can be cheaply enforced.
+3. **Validity, recomputed** — `isValid(id)` returns `(bool, Reason)` by recomputing from the attested frontier. The engine stores no "valid" flag that a keeper could quietly expire, because a stored flag is a thing that can go stale or be flipped.
+4. **Draw** — `LendingAdapter.draw(id, amount)` asks the engine first. If the claim has lapsed, the window has closed, or a counterexample has been proven, the draw reverts with a typed reason and no money moves.
+5. **Challenge** — a challenger submits a source transaction hash. The contract asks the block prover precompile to verify the inclusion proof, decodes the receipt, and requires that the transaction **succeeded** rather than merely being included, that the emitting contract equals the position's declared `sourceContract`, and that the log's topic0 equals the declared `eventSignature`. Only then does the predicate run.
+6. **Breach or settle** — one outcome moves the bond to the challenger and freezes draws forever; the other returns it to the underwriter when the window closes. Both are decided by the same code path, which is why I trust the second one.
 
-1. **chainKey != chainId.** Attestcoin keeps its own key space; Sepolia is `chainKey 1`, Ethereum mainnet is `chainKey 3`. The key is part of every proof and every replay key.
-2. **The precompiles are native runtime code, not contracts.** `eth_getCode` returns `0x` at both addresses on Creditcoin. That is expected and is not a missing deployment.
-3. **Inclusion is not success.** A reverted source transaction is still a validly included transaction, so the protocol decodes the proven receipt with the protocol's own `EvmV1Decoder` (vendored byte-identical) and requires `receiptStatus == 1`.
-4. **topic0 is not authorship.** The invariant is only ever evaluated against logs emitted by the position's contracted source address; the emitter gate lives in `predicates/PredicateLib.firstMatchingLog`.
+## How I integrated Attestcoin
 
-Full detail, including the exact payload format and the live evidence: **`docs/ATTESTCOIN.md`**.
+Attestcoin is the reason this is possible at all. Without a way to prove a source-chain transaction inside a Creditcoin contract, the claim would have to be attested by a human, which is the problem I was trying to remove.
 
-## 6. Verified, not asserted
+**The precompiles.** The protocol reads two: the **Block Prover** at `0x0000000000000000000000000000000000000FD2`, which verifies a Merkle proof that a transaction is included in a source block, and **ChainInfo** at `0x0000000000000000000000000000000000000fD3`, which supplies the attested source-chain height. Both are called from `AttestcoinAdapter`, never from the engine directly, so the verification path has one home.
 
-### Deployed and verified on Creditcoin CC3 testnet
+**What the contract refuses at each step.** A proof that does not verify reverts. A receipt that decodes to a failed transaction is rejected, because "included" and "succeeded" are different things and only the second is evidence. A log from a different emitter is rejected even if the proof is perfect. A log with the wrong topic0 is rejected. The predicate runs last, on values the contract has already established are real.
 
-Chain `102031`, deployed 2026-09-10, **all nine contracts verified on the explorer** (`is_verified: true`). Addresses and every transaction hash are in `evidence.json`.
+**Fail-closed.** When ChainInfo cannot answer, the protocol treats coverage as **unproven** rather than assuming it is fine. This is the one place where being wrong is asymmetric: assuming a claim holds when the chain cannot be read is exactly the failure this project exists to prevent.
+
+The integration is verified live with seven keyless checks run against the real testnet precompiles — no wallet, no key, just `eth_call` — and the transaction used as the counterexample in the demo is a real Sepolia transfer, not a fixture.
+
+## On-chain enforcement (Creditcoin CC3)
+
+Nine contracts on CC3 testnet, chain ID 102031, every one verified on Blockscout:
 
 | Contract | Address |
 |---|---|
-| `DemoToken` (cxTUSD, 6 decimals, faucet) | `0x7bde1e22355677cf4ac461fec92f534dda2117b7` |
-| `AttestcoinAdapter` | `0x5800fe651f37fc22ba0ce5e5b407c0b88a59ca63` |
-| `CoverageEngine` | `0xca5e3b0076673cd64a1655221305e66f2056d2bb` |
-| `CoverageMarket` | `0xb4569dc8827a8e573f2bb34b7f68a7ecf078b0e1` |
-| `ChallengeManager` | `0x5218279fd26e9b544c27e21acb1bfc9e325a5937` |
-| `LendingAdapter` | `0xf6931e84078c7fffc4f24c18bb15850ce7a1d967` |
-| `ProhibitedRecipient` / `AmountAboveLimit` / `AmountBelowFloor` | `0x52a200d4…`, `0xba746915…`, `0x6728d182…` |
+| `CoverageEngine` | [`0xca5e3b00…56d2bb`](https://creditcoin-testnet.blockscout.com/address/0xca5e3b0076673cd64a1655221305e66f2056d2bb) |
+| `CoverageMarket` | [`0xb4569dc8…78b0e1`](https://creditcoin-testnet.blockscout.com/address/0xb4569dc8827a8e573f2bb34b7f68a7ecf078b0e1) |
+| `ChallengeManager` | [`0x5218279f…5a5937`](https://creditcoin-testnet.blockscout.com/address/0x5218279fd26e9b544c27e21acb1bfc9e325a5937) |
+| `LendingAdapter` | [`0xf6931e84…a1d967`](https://creditcoin-testnet.blockscout.com/address/0xf6931e84078c7fffc4f24c18bb15850ce7a1d967) |
+| `AttestcoinAdapter` | [`0x5800fe65…59ca63`](https://creditcoin-testnet.blockscout.com/address/0x5800fe651f37fc22ba0ce5e5b407c0b88a59ca63) |
+| `DemoToken` (cxTUSD) | [`0x7bde1e22…2117b7`](https://creditcoin-testnet.blockscout.com/address/0x7bde1e22355677cf4ac461fec92f534dda2117b7) |
+| Predicate · prohibited recipient | [`0x52a200d4…20fca1`](https://creditcoin-testnet.blockscout.com/address/0x52a200d46c73695c746c31d76f9150a22c20fca1) |
+| Predicate · amount above limit | [`0xba746915…2011ef`](https://creditcoin-testnet.blockscout.com/address/0xba7469150da333bb8d2848e1a86aa80c212011ef) |
+| Predicate · amount below floor | [`0x6728d182…3a3b2b`](https://creditcoin-testnet.blockscout.com/address/0x6728d18271470ea888ae23df99fcf4a70f3a3b2b) |
 
-```
-$ node worker/scripts/verify-deployment.mjs
-19/19 checks passed
-```
-That includes our own deployed `AttestcoinAdapter` reading the live frontier through the real ChainInfo
-precompile: `height=11674170`, with `is_height_attested` true at that height and false 10M blocks above.
+This is the state those contracts were in when this README was written, read from the chain rather than from notes:
 
-### The full mechanism, executed live
-
-```
-$ node worker/scripts/demo.mjs
-```
-
-Four independent wallets, no hand-written values, every step a real transaction:
-
-```
-  faucet ALICE / BOB / LENDER          3 real mints
-  BOB deposits bond capital            tx=0xf22e94ab…e68189
-  LENDER funds liquidity               tx=0x21b7a644…cf05d8
-  ALICE buys coverage                  tx=0x1a9aece9…9ed0a5   (premium 56 cxTUSD, quoted on-chain)
-  isValid                              true (VALID)
-  ALICE draws against coverage         tx=0x84c5783f…fe87be
-  fetched real proof                   height 11671180, 7 siblings, 21 continuity roots
-  previewChallenge (free, read-only)   true — "counterexample breaches the position"
-  CAROL challenges                     tx=0x5930a7e3…26686f
-  bond paid to the challenger          +12000 cxTUSD
-  coverage status                      BREACHED
-  draw after breach                    reverted CoverageNotValid(STATUS_BREACHED)
-  second challenger                    reverted NotLive()
-
-  --- honest path ---
-  ALICE buys a second position         tx=0x72fca7de…ba2d6
-  ALICE repays, freeing capacity       tx=0x4401c55c…3ff1a
-  anyone settles the clean position    tx=0x508dc45c…273b2
-  bond released                        free balance +12000 cxTUSD
-  second position status               SETTLED
-```
-
-### The mechanism refusing, on the live deployment
-
-```
-$ node worker/scripts/attack-matrix.mjs --onchain
-REJECTED  draw against an unknown position                UnknownCoverage(999999)
-REJECTED  draw as a different counterparty                NotTheCounterparty()
-REJECTED  draw above the position maximum                 CoverageNotValid(CAPACITY_EXCEEDED)
-REJECTED  underwriter withdraws the locked bond           InsufficientFreeBalance(2904000000000, 2904000000001)
-REJECTED  create a position with bond < exposure          BondBelowExposure(1000000, 10000000000)
-REJECTED  stranger calls wireModules                      OwnableUnauthorizedAccount(0xc044…1130)
-REJECTED  challenge with a fabricated proof               Merkle proof validation failed
-REJECTED  challenge with a real proof, wrong chainKey     WrongChain(1, 3)
-REJECTED  challenge with a valid proof outside the window BlockOutsideWindow(11671129, 11671130, 11671130)
-REJECTED  challenge with proof of a reverted source tx    TransactionFailed(0)
-REJECTED  replay the counterexample on a breached position NotLive()          tx 0x65a8bc7f…2be7
-REJECTED  draw against a breached position                CoverageNotValid(STATUS_BREACHED)  tx 0xb62ce5ed…fbfa
-REJECTED  settle a breached position                      OutstandingExposure(10000000000)
-REJECTED  settle with exposure outstanding                OutstandingExposure(4000000000)
-REJECTED  re-run the one-time module wiring               ModulesAlreadyWired()
-
-15/15 attacks refused
-```
-
-Two refusals are **real failed transactions on chain** (status 0, 195,748 and 266,336 gas), so a reviewer
-can open them rather than trust a simulation. That draw paid 195,748 gas to be told no — a refusal is not
-free, but it cannot change state.
-
-### Timing, from block timestamps
-
-16 transactions, 225 seconds end to end at 15s per Creditcoin block: purchase 371,652 gas, draw 288,092,
-challenge 396,004, settlement 181,412. Raw log: `worker/evidence/timing.json`.
-
-The counterexample is a **real Sepolia USDC transfer** (`0x19c528d3…88a1`, block 11,671,180) whose
-recipient was declared prohibited in the coverage terms. Nothing was synthesised: the proof is genuine,
-the precompile verified it on-chain, and the invariant it breaks is one a lender could actually write into
-a position. Both worlds are covered — a false claim destroyed, and a clean claim settled with the bond
-returned.
-
-
-Everything below was executed on this machine and can be re-run by anyone with one command. Nothing in this section is a projection.
-
-### Attestcoin verification, live on CC3 testnet (keyless)
-
-```
-$ cd worker && npm install && node scripts/live-precompile-check.mjs
-PASS  chaininfo.frontier                      frontier=11673770 hash=0xe44a92d9…b889cd
-PASS  chaininfo.is_height_attested(frontier)  -> true
-PASS  chaininfo.is_height_attested(+10M)      -> false (must be false)
-PASS  proofBuilder.fetchProof                 height=11653808 txIndex=0 siblings=7 roots=93
-PASS  blockprover.verify(realProof)           -> true
-PASS  blockprover.verify(tamperedPayload)     reverted: "Merkle proof validation failed"
-7/7 checks passed
-```
-
-That is a real Sepolia transaction, a real proof from the public proof builder, and the real `0x0FD2` precompile returning `true` — then rejecting the same proof with one bit flipped. No key, no funds, no deployment.
-
-### Continuity compression, measured
-
-```
-$ node scripts/continuity-benchmark.mjs 5
-naive:  5 calls, total gas 419994, calldata 22676 bytes   (275 continuity roots carried)
-batch:  1 call,  total gas 293781, calldata 18820 bytes   (1 shared continuity proof)
-saving: 126213 gas (30.1%), calldata 3856 bytes
-```
-
-Honest reading: this is a **30% saving, not a 100× one**. The batch overload shares the expensive continuity chain across claims, but each claim still carries its own merkle path and proven bytes, which dominate the calldata. The compression is real, it grows with the number of claims in the window, and it is the reason the protocol is built on the batch path — but anyone claiming an order-of-magnitude win here has not measured it.
-
-### Gas, measured
-
-`forge test --gas-report` on the shipped suite: `CoverageEngine` 7,883 B runtime; `isValid` 1,302–25,884 gas; `LendingAdapter.draw` 62,948–150,649; `ChallengeManager.challenge` 52,928–208,029 (the verification path, paid by the challenger who receives the bond); predicates ~2,230. Full table with commentary in **`docs/GAS.md`**.
-
-### Contract tests
-
-```
-$ cd contracts && forge test
-71 tests passed, 0 failed, 0 skipped
-```
-
-Including the full counterexample suite A–H, the lookalike-emitter case, the reverted-source-transaction case, replay scoping, the challenger race, expiry, fail-closed behaviour when the frontier is unreachable, plus the market-layer suite: `OfferRegistry` (10), `Aggregation` (6), `DynamicPricing` (4), and invariant I-16 for aggregated bond conservation.
-
-**One limitation stated plainly:** the unit tests run against precompile *doubles* etched at the real addresses, because the protocol's verification is performed by the node, not by EVM bytecode. Those doubles prove this protocol's logic, not Attestcoin's cryptography. The cryptography is proven by the live check above, which calls the real node.
-
-**A second finding worth recording:** a Foundry fork of CC3 **cannot** exercise these precompiles — a fork copies state, not the node's native precompile implementations — and CC3 blocks do not populate `prevrandao`, so a default fork fails header validation anyway. Live verification must go through `eth_call` on the real node. That is why `test/LiveAttestcoin.t.sol` does not exist and `scripts/live-precompile-check.mjs` does.
-
-## 7. What is built, and what is not
-
-| Piece | State |
+| Figure | Value |
 |---|---|
-| Attestcoin adapter (frontier + inclusion + batch) | built, compiles, exercised |
-| Coverage engine (positions, bond locking, capacity, validity, settlement, **multi-contributor**) | built, tested |
-| Challenge manager (verify → decode → predicate → breach → pay each contributor) | built, tested |
-| Three predicate modules (prohibited recipient, amount ceiling, amount floor) | built, tested |
-| Coverage market (base × duration × depth × counterparty × **utilization** × **tranche**) | built, tested |
-| Offer registry (competing underwriters: publish · cancel · list · fill · aggregate) | built, tested |
-| Risk tranches (senior / junior; junior costs more and is slashed first in a basket) | built, tested |
-| Lending adapter (draw gating, exposure accounting, repayment) | built, tested |
-| Deploy + deployment-verification scripts | executed — deployment live; verification is RPC-based (see below) |
-| Keyless live Attestcoin verification | **executed against CC3 testnet, 7/7** |
-| Continuity benchmark | **measured against CC3 testnet** |
-| Deployment on CC3 testnet | **live** — 9 contracts, verified 19/19 by `verify-deployment.mjs`. The `OfferRegistry` predates this deployment; the UI detects it and shows the exact redeploy command |
-| Full mechanism run live | **done** — breach + slash and settlement, `worker/evidence/demo-run.json` |
-| Demo video, deck, submission form | not started (human deliverables) |
-| Frontend | `web/` — a transactional client that operates the protocol: connect wallet, faucet, publish/cancel offer, fill or aggregate offers, buy coverage, provide capacity, draw, repay, settle, challenge. Every write goes through simulate → sign → wait-for-receipt; every read is a contract call. Addresses generated from `evidence.json`, guarded by two CI checks (see below) |
+| Positions created | **13** — 0 active, 7 breached, 3 expired, 3 settled |
+| Underwriter capital | **2,927,000 cxTUSD** deposited in the engine |
+| Drawable liquidity | **531,500 cxTUSD** the pool can release right now |
+| Bond / exposure floor | **100%**, enforced on every purchase |
+| Attestation grace | **10,000** source blocks after a window closes |
+| Events emitted | **82**, all readable from the contracts' own logs |
 
-`worker/evidence/` holds the raw output of every live run shown above: `live-precompile.json`,
-`continuity-benchmark.json`, `deployment-verification.json`, `source-evidence.json` and `demo-run.json`.
-`evidence.json` is the machine-readable index of all of it, separating MEASURED facts from anything still
-pending (demo video, deck).
+## Engineering decisions & the hard problems
 
-**A third Foundry limitation worth recording:** a `forge script` deployment cannot verify the Attestcoin
-frontier either, for the same reason no fork test can — Foundry's EVM does not implement Creditcoin's
-native precompiles. `script/VerifyDeployment.s.sol` therefore verifies what an EVM *can* see (bytecode,
-module wiring, baked-in constants, engine parameters) and reports the frontier check as expected-to-fail
-from inside Foundry; the authoritative check is `worker/scripts/verify-deployment.mjs`, which sends
-`eth_call` to the real node. Two other defects surfaced during the live run and are fixed in the scripts:
-`forge script`'s gas estimate for the wiring call was 14,313 gas short (the transaction reverted OOG and
-the call was re-sent with an explicit limit), and the demo's repayment path needed its own ERC-20
-allowance for the lending pool.
+**Validity is computed, never stored.** The obvious design is a `valid` boolean on the position, flipped by a keeper when the window closes. I rejected it because a stored flag can be stale, and a stale "valid" flag on a credit position means money leaves against a claim nobody can defend. `isValid()` recomputes from the attested frontier on every call and returns the reason, not just false.
 
-### The interface cannot invent a number
+**The bond is capped at the exposure, not the exposure plus fees.** A bond larger than the exposure would make the position uneconomic to underwrite; smaller would make breaching profitable. Equal is the only value where lying is never worth it, so the contract refuses anything else at purchase.
 
-`web/` displays test counts, gas figures, addresses, transaction hashes and every
-coverage row, and it holds none of them itself. They are generated into
-`web/lib/evidence.generated.ts` from `evidence.json` and `worker/evidence/*.json` before
-every dev run and every build, and CI enforces two invariants over that file:
+**A predicate sees one transaction.** This is the sharpest limit in the system and I would rather state it than paper over it: a predicate cannot read source-chain state, cannot sum history, and cannot compare two transactions. Every invariant is a statement about one decoded receipt. That is enough for "did this transfer go to a prohibited address", which is the class of claim credit actually needs, and it is not enough for anything that needs a running total. `SECURITY.md` documents it.
 
-1. **Freshness** — `npm run check:evidence` regenerates it and fails if the committed
-   copy differs. A manifest change the UI has not picked up breaks the build rather than
-   shipping a stale claim.
-2. **No hand-typed values** — `scripts/check-no-literals.mjs` scans `app/` and
-   `components/` for comma-formatted evidence numbers appearing as literals. The
-   freshness check cannot catch a number that was typed into a component, because such a
-   value never passes through the generated file. That gap was real: four hardcoded gas
-   figures were found this way, two on the landing page and two in the console.
+**Both outcomes share one code path.** The breach and the settlement are the same evaluation run against different conclusions. If they were separate functions, a bug in one would be invisible until a borrower got lucky, which is the worst possible way to find out.
 
-Generation is deterministic (`GENERATED_AT` comes from the manifest, not the clock), so a
-clean tree always passes — a gate that fails for an unrelated reason gets ignored, and an
-ignored gate is worse than no gate.
+**Refusal is a typed reason, not a string.** `CoverageNotValid(reason)`, `BondBelowExposure(bond, exposure)`, `NotTheCounterparty()`. A caller that gets refused can tell why without parsing prose, and the tests assert on the code rather than the message.
 
-## 8. Comparison with the rest of this field
+**The site holds no facts of its own.** Every number in the app is generated from `evidence.json` into `web/lib/evidence.generated.ts`, and two CI guards fail the build if a measurement drifts or if a generated number is typed into a component by hand. This was not theoretical: a stale test count and four hardcoded gas figures both survived a green build before those guards existed.
 
-The default submission in this hackathon is a credit passport: prove a repayment on one chain, mint a score or a better rate on Creditcoin. That shape is well represented and this project is deliberately **not** it — a score summarises the past; coverage prices a defined future exposure and can be attacked.
+## What's real vs mock — the honesty table
 
-The closest neighbours, and the exact boundary in each case, are in **`docs/COMPARISON.md`**. In one line each:
+| Capability | How it's backed |
+|---|---|
+| **The deployment** | Nine real contracts on Creditcoin CC3 testnet, all verified, addresses above. |
+| **Source-chain proofs** | Real Attestcoin block prover precompile calls. The demo's counterexample is a real Sepolia transfer at block 11,671,180. |
+| **The positions** | Real state. 13 positions created through the app and the worker scripts; the breach below is a real transaction. |
+| **The attack matrix** | 15 attempts, all refused, two of them broadcast to the live network so they are **failed transactions** on the explorer rather than simulations. |
+| **Premium pricing** | A protocol pricing curve computed on chain from window and depth. It is **not** AI or market-derived, and I do not describe it as either. |
+| **The deployment token** | `DemoToken` is a **faucet token with a permissionless mint**. It is not a stablecoin, is not collateral, and has no value. |
+| **Market-layer contracts** | `OfferRegistry`, aggregated positions, utilisation pricing and tranches are **written and tested but not deployed**. The recorded 2026-09-10 deployment predates them; the app detects the missing registry and says so on the page. |
+| **The landing page's breach visual** | A **scroll animation**, not live chain data. The console is where the live numbers are. |
+| **Batching compression** | Measured at **30.1% over 5 claims and 22.5% over 10**. Not a fixed multiplier and not an order of magnitude. |
+| **Audit status** | **Not audited.** Testnet only. |
+| **Test coverage** | 71 contract tests. There is **no JavaScript test suite** — the app is verified by driving it against the live chain, not by unit tests. |
 
-| Neighbour | What it does | What is different here |
+## The live receipts
+
+Rather than a video, here is the evidence, each row checkable in a browser. Every hash below was re-read from the chain while writing this file.
+
+| What | Transaction | Where |
 |---|---|---|
-| **utuh** | bonds the *completeness of an event set* | no bond, no exposure gating, no market in coverage capacity |
-| **index41** | bonds a relay's claim about *transaction ordering* | no lending exposure; the bond secures a relay's honesty, not credit |
-| **recourse** | proven covenant breach freezes credit and pays a hunter | punitive only — no coverage instrument, no capacity, no pricing |
-| **Backstop / Attestable / PegShield / proof-feed / Tutela** | proof-triggered payouts on events affecting the buyer | insures a party against an event on itself; none sells coverage of a third party's behaviour |
+| Position #13 bought, bond locked | `0x376632ab…df588d` | [market](https://creditcoin-testnet.blockscout.com/tx/0x376632ab218531cc8533193f0ddb6e39e341a6be7d0be5f35780e72626df588d) |
+| 500 drawn against it | `0x8f7d01de…3996d6` | [lending adapter](https://creditcoin-testnet.blockscout.com/tx/0x8f7d01de3fdb428c5cccd8c0a3fe418a3be45530982afa58c8a3d0875d3996d6) |
+| **Counterexample proven, bond seized** | `0x2f864705…b70647` | [challenge manager](https://creditcoin-testnet.blockscout.com/tx/0x2f86470544c839fc43a25c31b87752997177ff28240c785477dfc17e5db70647) |
+| The Sepolia transfer used as the proof | `0x19c528d3…bc88a1` | [Sepolia etherscan](https://sepolia.etherscan.io/tx/0x19c528d3175bfc9d7cd0b1b7285fa07113054c5585eb8dead195b977edbc88a1) |
+| Draw refused on chain after the breach (status: **failed**) | `0xb62ce5ed…969fbfa` | [lending adapter](https://creditcoin-testnet.blockscout.com/tx/0xb62ce5ed691e7521c2c05430c1fc8c5069d42ff649dc0db7680056df8969fbfa) |
+| Replayed counterexample refused (status: **failed**) | `0x65a8bc7f…772be7` | [challenge manager](https://creditcoin-testnet.blockscout.com/tx/0x65a8bc7f34a90538964342617ca75cc097f7d1bc3cbdd1c6e650898cb9772be7) |
+| An honest position settling | `0x508dc45c…5273b2` | [engine](https://creditcoin-testnet.blockscout.com/tx/0x508dc45c0a7b613813bec6f84aea4b4ca506f2b4a06fe0a7d3ebfeb78c5273b2) |
 
-## 9. Repository layout
+You do not have to take the app's word for the position state. Read it directly:
 
-```
-contracts/                      Foundry project (Solidity 0.8.30, via_ir)
-  src/
-    AttestcoinAdapter.sol       the only file that touches a precompile
-    CoverageEngine.sol          positions, bond accounting, validity, state machine
-    CoverageMarket.sol          pricing curve, purchase, capacity offers
-    ChallengeManager.sol        adjudication: proof → decode → predicate → breach
-    LendingAdapter.sol          draw gating + exposure accounting
-    OfferRegistry.sol           competing underwriter offers + aggregation
-    DemoToken.sol               testnet-only 6-decimal demo asset with a faucet
-    interfaces/                 vendored Attestcoin ABIs (provenance in file headers)
-    lib/EvmV1Decoder.sol        vendored protocol decoder, byte-identical
-    predicates/                 the three invariant modules + shared emitter gate
-  test/                         71 tests: lifecycle, attack matrix, state machine, invariants, predicates, offer registry, aggregation, dynamic pricing
-  script/                       Deploy.s.sol, VerifyDeployment.s.sol
-worker/                         proof pipeline, challenger watcher, live verification, benchmark
-web/                            Next.js app — landing (/) and the console (/dashboard), reading CC3 live
-  lib/evidence.generated.ts     GENERATED from evidence.json; the UI holds no facts of its own
-  scripts/gen-evidence.mjs      regenerates it; runs before dev and build, gated in CI
-  scripts/check-no-literals.mjs fails if a generated number is typed into a component by hand
-  public/product/*.png          real captures of the console, used on the landing page
-docs/                           ATTESTCOIN.md, ECONOMICS.md, COMPARISON.md, INTEGRATION.md,
-                                GAS.md, DEMO.md, JUDGE-PACKET.md, SUBMISSION.md, ROADMAP.md
-docs/deck/                      coverage-exchange-deck.pdf, built from deck.typ (9 slides, 16:9)
-INVARIANTS.md  SECURITY.md      the numbered invariants and the threat model
+```bash
+cast call 0xca5e3b0076673cd64a1655221305e66f2056d2bb \
+  "getCoverage(uint256)((uint256,address,address,uint64,uint64,uint64,uint64,uint64,uint256,uint256,uint256,uint256,uint256,address,bytes32,address,bytes32,uint8,uint64,bytes32))" \
+  13 --rpc-url https://rpc.cc3-testnet.creditcoin.network
 ```
 
-## 10. Reproducing this
+That returns position #13's full record, including its window, its bond, and its status. The same read is what the app renders — it is not a cached copy.
+
+## The app
+
+Two surfaces sharing one design language, both reading CC3 live:
+
+- **The landing** (`/`) — the mechanism explained with the breach animated as you scroll, and the attested frontier ticking in the header. Its call to action leads into the console.
+- **The console** (`/dashboard` and eight more routes) — the working app: connect a wallet, buy coverage, provide coverage, draw and repay, challenge a position with a proof, and read the full protocol state.
+
+The console reads everything from the contracts on an interval and reports a failed read rather than showing a stale number. Every figure is generated from the evidence manifest, so the UI cannot hold a fact the repo does not.
+
+## Tech stack
+
+- **Contracts:** Solidity 0.8.28, Foundry. OpenZeppelin for the token and access primitives.
+- **Attestation:** Attestcoin block prover and ChainInfo precompiles on Creditcoin CC3.
+- **App:** Next.js 16 (App Router), React 19, TypeScript strict, viem for chain reads and writes.
+- **Evidence tooling:** Node scripts in `worker/` that produce `evidence.json`; a generator that turns it into typed constants for the UI.
+- **Tests:** Forge — 71 tests across 9 suites, including fuzzed invariants.
+
+## Project layout
+
+```
+contracts/                    # Solidity + Foundry
+  src/CoverageEngine.sol      # positions, bonds, isValid, effectiveStatus
+  src/CoverageMarket.sol      # quotes, purchase, aggregated purchase
+  src/ChallengeManager.sol    # proof submission, breach, bond payout
+  src/LendingAdapter.sol      # the pool: draw, repay, liquidity
+  src/OfferRegistry.sol       # standing offers (written, not yet deployed)
+  src/predicates/             # ProhibitedRecipient, AmountAboveLimit, AmountBelowFloor
+  src/interfaces/ICoverage.sol# Coverage, Status, Reason, IPredicate
+  test/                       # 9 suites incl. AttackMatrix and Invariants
+  script/Deploy.s.sol         # the deployment that is live on CC3
+worker/
+  scripts/demo.mjs            # the end-to-end lifecycle run on live testnet
+  scripts/attack-matrix.mjs   # 15 attempts against the live deployment
+  scripts/live-precompile-check.mjs  # 7 keyless checks against the real precompiles
+  scripts/verify-deployment.mjs      # 19 checks; confirms every contract verifies
+  evidence/                   # the raw output those scripts produced
+web/                          # Next.js app — landing (/) and the console (/dashboard)
+  lib/evidence.generated.ts   # GENERATED from evidence.json; the UI holds no facts of its own
+  scripts/gen-evidence.mjs    # regenerates it; runs before dev and build, gated in CI
+  scripts/check-no-literals.mjs  # fails if a generated number is typed into a component
+docs/                         # ATTESTCOIN, ECONOMICS, COMPARISON, INTEGRATION, GAS,
+                              # DEMO, JUDGE-PACKET, SUBMISSION, ROADMAP
+docs/deck/                    # the 9-slide project deck, built from deck.typ
+evidence.json                 # every measured number the UI and this README quote
+INVARIANTS.md SECURITY.md     # the numbered invariants and the threat model
+```
+
+## Run it locally
 
 ```bash
 # 1. contracts
 cd contracts
-forge install            # forge-std + openzeppelin-contracts
-forge build
-forge test               # 71 tests
+forge install foundry-rs/forge-std@v1.9.4
+forge install OpenZeppelin/openzeppelin-contracts@v5.1.0
+forge test                       # 71 tests
 
-# 2. live Attestcoin verification, keyless (network required)
-cd ../worker
+# 2. the app — reads the live CC3 deployment by default
+cd ../web
 npm install
-node scripts/live-precompile-check.mjs
-node scripts/continuity-benchmark.mjs 5
-
-# 3. live deployment checks (keyless)
-node scripts/verify-deployment.mjs      # 19/19 on the deployed addresses
-node scripts/find-source-evidence.mjs   # locate a real source-chain transaction to prove
-node scripts/demo.mjs                   # the whole mechanism, four wallets, real proofs
-node scripts/attack-matrix.mjs --onchain # every attack refused, two recorded on chain
-bash ../contracts/script/verify-on-explorer.sh   # submit all 9 for explorer verification
-
-cd ../web && npm install && npm run dev  # UI at :3000 — landing at /, the console at /dashboard
-                                         # reads CC3 testnet directly; no backend, no API keys
-
-# 4. deploy your own instance to CC3 testnet (funded key required)
-cd ../contracts
-FOUNDRY_PROFILE=live forge script script/Deploy.s.sol:Deploy \
-  --rpc-url $CC3_TESTNET_RPC_URL --broadcast --private-key $DEPLOYER_PRIVATE_KEY
+npm run dev                      # http://localhost:3000
 ```
 
-> If you deploy your own instance, send the `wireModules` transaction with an explicit `--gas-limit`:
-> `forge script` under-estimated it by ~14k gas on the live network and the call reverted out of gas.
+The app needs no keys to read. `web/.env.example` carries only the public RPC and the deployed addresses. Sending a transaction needs a browser wallet funded from the faucet, which the console links to.
 
-## 11. Limitations
+To regenerate the evidence the UI is built from:
+
+```bash
+cd web
+npm run check:evidence           # regenerates from ../evidence.json and diffs the result
+```
+
+If that fails, the UI and the manifest have diverged, which is exactly what it is for.
+
+## How I'd deploy it
+
+Import the repo into **Vercel** with the **Root Directory** set to `web`. The framework preset and build command are detected; no environment variables are required to read the live deployment, because the addresses ship in the generated evidence.
+
+To redeploy the contracts, `forge script script/Deploy.s.sol --broadcast` writes a fresh address set, and everything downstream has to be regenerated — the addresses in `evidence.json`, the explorer verification, and the app's generated constants. Any change that touches `CoverageEngine` invalidates the recorded addresses and the demo evidence; `docs/ROADMAP.md` covers the sequencing.
+
+One thing I would change before real traffic: the market-layer contracts are written and tested but not deployed, so the deployment is behind the code. A clean redeploy that includes `OfferRegistry` is the next step, and it is why the app detects the missing registry and says so rather than showing an empty page.
+
+## Tests
+
+```bash
+cd contracts && forge test        # 71 passing, 9 suites, 0 failing
+```
+
+The suite covers the full lifecycle, the attack matrix (A through H plus the later cases), a lookalike-emitter attack, a reverted source transaction, replay scoping, the challenger race, expiry, fail-closed behaviour under an unavailable precompile, offer aggregation, utilisation pricing, and fuzzed invariants `I-01` through `I-05` and `I-16`.
+
+Beyond unit tests, the mechanism is verified against the live network: a 16-transaction lifecycle run took 225 seconds at a 15-second block time, 15 attacks were run against the deployed contracts and all 15 were refused, and the deployment passed 19 verification checks with all nine contracts verifying on the explorer.
+
+## Limitations
 
 Stated here rather than discovered by a reviewer:
 
-- **A predicate sees one proven transaction.** It cannot read source-chain state, cannot sum history and cannot compare two transactions. Every invariant is therefore a statement about one decoded receipt. See `SECURITY.md` §"What a predicate cannot see".
-- **Coverage windows are relative to the attestation frontier.** A position bought over a window the frontier has already passed is expired on arrival; the grace band is configurable (`defaultGraceBlocks`, currently 10,000 source blocks).
-- **Compression is 22–30%, not orders of magnitude** and not a fixed multiplier: 30.1% measured over 5 claims, 22.5% over 10, depending on how many continuity roots the proofs need (both runs in `docs/GAS.md`).
-- **The challenger supplies the counterexample.** `web/` fetches the inclusion proof from the public prover and simulates the challenge for free, but the source transaction hash comes from the user. Automated counterexample search is out of scope for this deployment.
-- **The recorded 2026-09-10 CC3 deployment predates the market-layer contracts** (`OfferRegistry`, aggregated positions, utilization pricing, tranches). The code, tests and deploy script are all in the repo; the `/offers` UI detects the missing registry and shows the exact redeploy command. Any change that touches `CoverageEngine` invalidates the recorded addresses, the explorer verification and the demo evidence — the sequencing rule in `docs/ROADMAP.md` covers this.
-- **Mainnet is not deployed.** By design at this stage: CC3 testnet is the target of this build.
+- **A predicate sees one proven transaction.** It cannot read source-chain state, cannot sum history, and cannot compare two transactions. Every invariant is a statement about one decoded receipt. See `SECURITY.md` §"What a predicate cannot see".
+- **Coverage windows are relative to the attestation frontier.** A position bought over a window the frontier has already passed is expired on arrival. The grace band is configurable and currently 10,000 source blocks.
+- **The challenger supplies the counterexample.** The app fetches the inclusion proof from the public prover and simulates the challenge for free, but the source transaction hash comes from the user. Automated counterexample search is out of scope for this deployment.
+- **The recorded deployment predates the market-layer contracts.** `OfferRegistry`, aggregated positions, utilisation pricing and tranches are in the repo and tested, but not in the live address set.
+- **Mainnet is not deployed.** CC3 testnet is the target of this build.
+- **The token is a faucet token.** It has no value and is not collateral.
 
-## 12. Non-goals
+## Non-goals
 
-These are not roadmap items — they are decisions with mechanism-level reasons. Building any of them would
-weaken the invariant, not extend it. Reasons live in `SECURITY.md` and `docs/ROADMAP.md`; in one line each:
+These are not roadmap items. They are decisions with mechanism-level reasons — building any of them would weaken the invariant rather than extend it, and the reasons live in `SECURITY.md` and `docs/ROADMAP.md`:
 
 - **Transferable coverage** — breaks the counterparty binding at the moment of the draw.
-- **Governance token** — adds a second claim on the value the bond already secures.
-- **Protocol fee on seized bonds** — reduces the only economic force standing between a false claim and a paid-out loan.
+- **A governance token** — adds a second claim on the value the bond already secures.
+- **A protocol fee on seized bonds** — reduces the only economic force standing between a false claim and a paid-out loan.
 
-## 13. Licence
+## Licence
 
-MIT for this project's code. Vendored files retain their upstream MIT terms and say so in their headers.
+MIT. See [`LICENSE`](LICENSE). Vendored files retain their upstream MIT terms and say so in their headers.
