@@ -53,10 +53,12 @@
   "measured": {
     "contractTests": {
       "tool": "forge test",
-      "passed": 48,
+      "passed": 71,
       "failed": 0,
       "skipped": 0,
-      "what": "lifecycle, attack matrix A-H, lookalike emitter, reverted source tx, replay scoping, challenger race, expiry, fail-closed, fuzzed invariants I-01..I-05"
+      "what": "lifecycle, attack matrix A-H, lookalike emitter, reverted source tx, replay scoping, challenger race, expiry, fail-closed, fuzzed invariants I-01..I-05, offer registry, offer aggregation, utilization-based pricing, and invariant I-16 (aggregated bond conservation) \u2014 71 tests across 9 suites",
+      "suites": 9,
+      "recordedAt": "2026-09-13"
     },
     "liveAttestcoinVerification": {
       "tool": "node worker/scripts/live-precompile-check.mjs",

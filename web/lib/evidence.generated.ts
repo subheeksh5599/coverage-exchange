@@ -121,7 +121,7 @@ export const ATTACKS = [
 ] as const;
 
 export const MEASURED = {
-  forgeTests: 48,
+  forgeTests: 71,
   attackCount: 15,
   attacksRefused: 15,
   liveChecks: 7,
