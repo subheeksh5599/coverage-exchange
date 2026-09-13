@@ -295,26 +295,27 @@ export default function Landing() {
               <span key={k} style={{ display: "inline-flex" }}>
                 <span className="mq-item">
                   <span className="sep">◆</span> attack matrix{" "}
-                  <span className="v">15/15 refused</span>
+                  <span className="v">{MEASURED.attacksRefused}/{MEASURED.attackCount} refused</span>
                 </span>
                 <span className="mq-item">
-                  <span className="sep">◆</span> forge tests <span className="v">48 passing</span>
+                  <span className="sep">◆</span> forge tests{" "}
+                  <span className="v">{MEASURED.forgeTests} passing</span>
                 </span>
                 <span className="mq-item">
                   <span className="sep">◆</span> live precompile checks{" "}
-                  <span className="v">7/7 keyless</span>
+                  <span className="v">{MEASURED.liveChecks}/{MEASURED.liveChecksTotal} keyless</span>
                 </span>
                 <span className="mq-item">
                   <span className="sep">◆</span> contracts verified on explorer{" "}
-                  <span className="v">9/9</span>
+                  <span className="v">{MEASURED.contractsVerified}/{MEASURED.contractsTotal}</span>
                 </span>
                 <span className="mq-item">
                   <span className="sep">◆</span> batch continuity saving{" "}
-                  <span className="v">30.1% measured</span>
+                  <span className="v">{MEASURED.batchSaving5}% measured</span>
                 </span>
                 <span className="mq-item">
                   <span className="sep">◆</span> full mechanism live{" "}
-                  <span className="v">225s · 16 txs</span>
+                  <span className="v">{MEASURED.demoSeconds}s · {MEASURED.demoTxCount} txs</span>
                 </span>
                 <span className="mq-item">
                   <span className="sep">◆</span> keepers · committees · admins{" "}

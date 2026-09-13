@@ -7,8 +7,15 @@
 // the landing page: the generator knew 195,748 and 266,336, and the page typed them
 // out again, so the gate had nothing to compare.
 //
-// This scans the UI for comma-formatted evidence numbers (which are distinctive
-// enough to have almost no false positives) and fails if one appears as a literal.
+// Two rules, because one shape of hardcoding slips past the other:
+//
+//   1. Comma-formatted numbers >= 1000. Distinctive enough to have almost no false
+//      positives.
+//   2. Small evidence-shaped claims, e.g. "48 passing", "15/15 refused", "9/9". These
+//      only became a problem once the suite grew: the landing marquee advertised a
+//      hardcoded "48 passing" while the identically-worded figure further down the same
+//      page read from the manifest. A two-digit claim is still a claim.
+//
 // Numbers rendered from a constant are invisible to this check, which is the point:
 // the only way to display them is to import them.
 
@@ -49,6 +56,12 @@ function walk(dir) {
 const files = [...walk(join(ROOT, "app")), ...walk(join(ROOT, "components"))];
 const hits = [];
 
+// Display shapes that make a claim about measured work.
+const SMALL_CLAIM = [
+  />\s*\d+\s*(passing|refused|keyless|failing|tests?)\b/i, // "> 48 passing"
+  />\s*\d+\s*\/\s*\d+\s*(refused|keyless|passing)?\s*</i, // ">15/15<"  ">9/9<"
+];
+
 for (const file of files) {
   const rel = relative(ROOT, file);
   if (SKIP.has(rel)) continue;
@@ -56,9 +69,25 @@ for (const file of files) {
   src.split("\n").forEach((line, i) => {
     const code = line.split("//")[0];
     if (/from ["']@\/lib\/evidence\.generated/.test(code)) return;
+
     for (const v of values) {
-      if (code.includes(`"${v}`) || code.includes(`>${v}`) || code.includes(`'${v}`) || code.includes("`" + v)) {
-        hits.push(`${rel}:${i + 1}  literal ${v}  →  ${line.trim().slice(0, 90)}`);
+      const quote = String.fromCharCode(34);
+      const apos = String.fromCharCode(39);
+      const tick = String.fromCharCode(96);
+      if (
+        code.includes(quote + v) ||
+        code.includes(">" + v) ||
+        code.includes(apos + v) ||
+        code.includes(tick + v)
+      ) {
+        hits.push(`${rel}:${i + 1}  literal ${v}  ->  ${line.trim().slice(0, 90)}`);
+      }
+    }
+
+    for (const re of SMALL_CLAIM) {
+      if (re.test(code)) {
+        hits.push(`${rel}:${i + 1}  typed claim  ->  ${line.trim().slice(0, 90)}`);
+        break;
       }
     }
   });
