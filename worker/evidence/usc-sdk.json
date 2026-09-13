@@ -1,0 +1,66 @@
+{
+  "tool": "node scripts/usc-sdk-check.mjs",
+  "sdk": "@gluwa/usc-sdk",
+  "sdkVersion": "0.18.0",
+  "what": "the same source transaction, proved through the official USC SDK and then verified by the real precompile",
+  "sourceTx": "0x19c528d3175bfc9d7cd0b1b7285fa07113054c5585eb8dead195b977edbc88a1",
+  "checksPassed": 11,
+  "checksTotal": 11,
+  "results": [
+    {
+      "step": "sdk.blockProver.address",
+      "ok": true,
+      "detail": "-> 0x0000000000000000000000000000000000000FD2"
+    },
+    {
+      "step": "sdk.chainInfo.address",
+      "ok": true,
+      "detail": "-> 0x0000000000000000000000000000000000000fd3"
+    },
+    {
+      "step": "sdk.getProof",
+      "ok": true,
+      "detail": "block=11671180 txIndex=2"
+    },
+    {
+      "step": "sdk.proof.matchesRecordedBlock",
+      "ok": true,
+      "detail": "sdk=11671180 recorded=11671180"
+    },
+    {
+      "step": "sdk.proof.matchesRecordedTxIndex",
+      "ok": true,
+      "detail": "sdk=2 recorded=2"
+    },
+    {
+      "step": "sdk.proof.chainKey",
+      "ok": true,
+      "detail": "-> 1"
+    },
+    {
+      "step": "sdk.proof.hasMerkleSiblings",
+      "ok": true,
+      "detail": "siblings=7"
+    },
+    {
+      "step": "sdk.proof.hasContinuityRoots",
+      "ok": true,
+      "detail": "roots=21"
+    },
+    {
+      "step": "blockprover.verify(sdkProof)",
+      "ok": true,
+      "detail": "-> true"
+    },
+    {
+      "step": "blockprover.verify(tamperedPayload)",
+      "ok": true,
+      "detail": "reverted as expected"
+    },
+    {
+      "step": "sourceTx.receiptStatus",
+      "ok": true,
+      "detail": "status=1 (1 = the source tx succeeded)"
+    }
+  ]
+}

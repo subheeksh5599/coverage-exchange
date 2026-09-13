@@ -8,7 +8,8 @@
     "typecheck": "tsc --noEmit",
     "live-check": "node scripts/live-precompile-check.mjs",
     "benchmark": "node scripts/continuity-benchmark.mjs",
-    "watch": "node src/watch.mjs"
+    "watch": "node src/watch.mjs",
+    "check:usc-sdk": "node scripts/usc-sdk-check.mjs"
   },
   "dependencies": {
     "@gluwa/usc-sdk": "0.18.0",
