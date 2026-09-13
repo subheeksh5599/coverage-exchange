@@ -1,129 +1,137 @@
 # Demo script
 
-For whoever records the video. This is the shot list and the words — nothing else. Every number, address
-and hash below is real and already on chain; nothing needs to be set up or re-run before recording.
+For whoever records the video. Clicks and words only. Every number below was read off the live
+deployment on 13 Sep 2026; the frontier figure moves, so say it as "about" if it has drifted by the
+time you record. Nothing needs to be set up or re-run.
 
-The demo is **website-first**: the app at `web/` is the stage, and the explorer is where each claim gets
-checked. No terminal on screen, no GitHub.
+Open one tab: **https://coverage-exchange.vercel.app**
 
-## Before you hit record
+Click **Connect wallet** once at the start. It asks for no signature and sends nothing. You need it
+because the premium is priced per borrower, so the quote stays blank until the page knows who is
+buying. Everything else on the site works without it.
 
-Start the app. Easiest — it is already deployed, so there is nothing to run:
-
-```
-https://coverage-exchange.vercel.app                # landing
-https://coverage-exchange.vercel.app/dashboard      # console
-```
-
-Or serve it locally if you would rather not depend on the network while recording:
-
-```
-cd web && npm install && npm run dev                # http://localhost:3000
-```
-
-Then open these tabs in order, so you never scroll while live. The landing page also carries three real
-screenshots of the console — you never have to describe what the product looks like:
-
-1. `https://coverage-exchange.vercel.app/` — **the landing**, with the Sepolia frontier live in the header
-   (or `http://localhost:3000/` if you started it locally)
-2. `https://coverage-exchange.vercel.app/dashboard` — **the console**. Four views, click them in this order
-   (or `http://localhost:3000/dashboard` locally):
-   - **Overview** — bond locked, covered exposure, drawn, the invariant per position, covered windows against the live frontier
-   - **Positions** — every position with its live `isValid` reason; filter to ACTIVE for the two still in flight
-   - **Attack matrix** — all 15 attempts, each with the revert reason it hit
-   - **Contracts** — the 9 verified deployments on CC3
-3. `https://creditcoin-testnet.blockscout.com/tx/0x5930a7e3e29f6394839dd34c6688a501778ad2b928c6877b95a44ecdd326686f` — **the challenge** (the money shot)
-4. `https://creditcoin-testnet.blockscout.com/tx/0xb62ce5ed691e7521c2c05430c1fc8c5069d42ff649dc0db7680056df8969fbfa` — a draw **refused on chain** after the breach (status: failed)
-5. `https://ethereum-sepolia.etherscan.io/tx/0x19c528d3175bfc9d7cd0b1b7285fa07113054c5585eb8dead195b977edbc88a1` — the real Sepolia transfer used as evidence
-6. `https://creditcoin-testnet.blockscout.com/tx/0x508dc45c0a7b613813bec6f84aea4b4ca506f2b4a06fe0a7d3ebfeb78c5273b2` — the clean position settling
-
-One honest note to have ready if a judge asks: **the site is read-only.** It reads Creditcoin CC3 live
-and every number on it is generated from the evidence manifest, but the transactions were sent by the
-scripts in `worker/`, where the wallets are. Don't imply you're clicking to send money.
+No terminal. No GitHub. If a judge asks where the code is, answer out loud and keep the screen on
+the site.
 
 ---
 
-## 0:00 – 0:20 — the problem
+## 0:00 – 0:25 — the problem
 
-**On screen:** tab 1, the landing. Let the frontier number in the header sit visible for a beat.
-
-**Say:**
-> "A lender is about to extend credit on Creditcoin. The collateral and the borrower's behaviour are on
-> Ethereum. The lender cannot see Ethereum — so today it either trusts a report, or lends so little it
-> doesn't matter. This is the missing third option: a claim about another chain that costs money when
-> it's false. That number in the corner is Ethereum's attested frontier, read live."
-
-## 0:20 – 0:45 — what a coverage position is
-
-**On screen:** tab 2, the console. Open **Overview**, then point at the breached position's row.
+**Click:** nothing. Land on the page and let the frontier number in the top right tick for a few
+seconds.
 
 **Say:**
-> "This is a coverage position. It says: this borrower may draw up to ten thousand, only while the
-> attested frontier covers source blocks 11,671,130 to 11,671,230 to a depth of thirty-two, and only
-> while no counterexample has been proven. Twelve thousand of bond is locked behind that claim — more
-> than the exposure, so breaching it on purpose is never profitable. Every row here is read from the
-> deployed contract right now, including whether it's currently valid and why."
 
-## 0:45 – 1:15 — the honest path works
+> "A lender on Creditcoin is about to extend credit against collateral that lives on Ethereum. It
+> can't see Ethereum. So today it either trusts a report, or it lends so little that it doesn't
+> matter. And a report costs the person writing it nothing when it's wrong. This turns that report
+> into a bond. If the claim is false, someone loses money, and the loss is automatic."
 
-**On screen:** stay on tab 2. Click **Positions**, filter to **ACTIVE**, and show the draw that succeeded.
+## 0:25 – 0:55 — the state of the thing
 
-**Say:**
-> "The borrower bought coverage, the lender released capital against it, and the draw succeeded — two
-> hundred and eighty-eight thousand gas of real work on Creditcoin CC3. So far this is credit gated by a
-> verifiable condition rather than by a promise."
-
-## 1:15 – 1:50 — the attack
-
-**On screen:** tab 5 (the Sepolia transaction), then back to tab 2.
+**Click:** `LIVE POSITIONS →` in the middle of the page. That lands on the console overview.
 
 **Say:**
-> "Now someone attacks it. On Ethereum, this transfer went to an address the position declared
-> prohibited — a real transaction, nothing staged. Anybody can pull the Attestcoin proof for it. Nobody
-> needs permission, no stake, no allowlist: the proof is the only credential."
 
-## 1:50 – 2:20 — the breach, in one transaction
+> "Thirteen positions exist on this deployment. Seven were breached, three expired, three settled,
+> and none are active, so nothing here is gating credit right now. Those counts come from the
+> contracts, not a database. Down the side, two point nine million of underwriter capital and about
+> five hundred and thirty thousand the pool can actually release. The number up top is Sepolia's
+> attested frontier, and it moves while I talk, because it's read live."
 
-**On screen:** tab 3, scroll from the top: status **success**, then the token transfer at the bottom.
+## 0:55 – 1:30 — what a position costs
 
-**Say:**
-> "One transaction. The Block Prover precompile verified the proof, the contract decoded the receipt,
-> confirmed the transaction actually succeeded rather than merely being included, checked the emitter,
-> and ran the invariant. The position flipped to BREACHED and the twelve thousand bond went to the
-> challenger — in the same transaction, with no dispute window and no committee."
-
-## 2:20 – 2:45 — the consequence
-
-**On screen:** tab 2, click **Attack matrix**; then tab 4, the failed transaction.
+**Click:** `02 BUY COVERAGE`. Choose the underwriter in the dropdown. Then click the `25,000` chip
+next to Covered exposure.
 
 **Say:**
-> "The borrower immediately tries to draw again. Refused on chain — status failed, and the reason is in
-> the error: coverage not valid, status breached. That's one row of fifteen. Every attack we could think
-> of was run against this deployment and every one was refused, and two of them are real failed
-> transactions you can open, not simulations."
 
-## 2:45 – 3:00 — the other world
+> "To buy coverage you pick an underwriter with capital free, set the exposure, and set the window
+> of Sepolia blocks you want covered. Watch the quote change. At twenty-five thousand of exposure
+> the premium is a hundred and forty, and the underwriter has to lock twenty-five thousand of bond
+> behind it. That ratio is the floor: the bond always covers the exposure, so breaching on purpose
+> never pays. The premium moves with the terms because it's priced against the real window and
+> depth, on chain."
 
-**On screen:** tab 6, then back to tab 2 → **Positions** → **SETTLED**.
+## 1:30 – 2:00 — a position that died
+
+**Click:** `05 POSITIONS`. Scroll to `COVERAGE EXPLORER`, then click `#13` in the row of position
+ids.
 
 **Say:**
-> "And the honest case: a second position nobody breached. The window closed, the frontier covered it,
-> the position settled and the bond went back to the underwriter. That matters — this is not a machine
-> that only takes bonds away, and the same code path decides both outcomes."
+
+> "Any position is public. Type an id or click one. Number thirteen was breached. Status breached,
+> validity invalid, and then it tells you why. The predicate was ProhibitedRecipient. The covered
+> window was Sepolia 11,671,130 to 11,671,230. A thousand of bond was locked, five hundred was
+> drawn against it, and the position is dead. This record is read from the contract, not written by
+> us."
+
+## 2:00 – 2:20 — who is allowed to attack it
+
+**Click:** `06 CHALLENGE`.
+
+**Say:**
+
+> "Anyone can challenge. There's no stake and no allowlist, and nobody has to approve you. This page
+> says nothing is challengeable right now, and it tells you why. Every position here is terminal, or
+> the frontier has already passed its window. An expired position can't be breached, because the
+> exposure it gated has lapsed and the bond is no longer at risk. That's a line in the contract, not
+> a decision somebody makes."
+
+## 2:20 – 2:45 — the receipt
+
+**Click:** `07 ACTIVITY`. Then click `CHALLENGE` in the filter row.
+
+**Say:**
+
+> "This is built by reading the contracts' own event logs, so there's no local table to drift out of
+> sync with the chain. Eighty-two events. Filter to challenges and there are seven. The top one is
+> the breach of position thirteen, and the transaction that did it is real, so we can open it."
+
+**Click:** the `0x2f864705…b70647` transaction link. Let the explorer load and sit on the page.
+
+**Say:**
+
+> "One transaction. Success. The Block Prover precompile checked the proof, the contract decoded the
+> receipt, confirmed the source transaction actually succeeded instead of just being included,
+> checked the emitter, ran the invariant, and moved the bond. No dispute window, no committee."
+
+## 2:45 – 3:05 — the deployment
+
+**Click:** `08 PROTOCOL`.
+
+**Say:**
+
+> "Nine contracts, chain 102031, every one verified on Blockscout. This panel is the part I'd point a
+> sceptic at. The bond-to-exposure floor is a hundred percent, enforced at purchase on every single
+> position, and validity is recomputed on every call. The engine stores no valid flag that a keeper
+> could quietly expire. Fifteen attacks were run against this deployment and fifteen were refused.
+> Two of them are failed transactions on the explorer you can open yourself."
 
 ---
 
-## 60-second version (if you only get one minute)
+## 45-second cut
 
-> "Credit on Creditcoin against collateral that lives on Ethereum. Instead of trusting a report, an
-> underwriter locks a bond behind a claim about a range of Ethereum blocks. The lender will only release
-> money while that claim holds. Anyone who can prove one contradicting transaction inside the range
-> takes the bond — here, in a single transaction, with the real proof, and the borrower's next draw was
-> refused on chain. If nobody finds a contradiction, the bond goes back."
+Use this if you only get one slot. Same clicks, three stops: overview, positions, activity.
 
-## What NOT to say
+> "Credit on Creditcoin against collateral that lives on Ethereum, where the lending chain can't see
+> the collateral chain. Instead of trusting a report, an underwriter locks a bond behind a claim
+> about a range of Ethereum blocks, and a lender releases money only while that claim holds. Anyone
+> who can prove one contradicting transaction inside the range takes the whole bond, in a single
+> transaction. Here are thirteen positions, seven of them breached. This one shows the predicate it
+> violated and the exact block window. And this is the event log, read from the contracts, with the
+> transaction that killed it. If nobody finds a contradiction, the bond goes back to the
+> underwriter. That code path runs every time too."
 
-Do not call the demo asset a stablecoin (it is a faucet token), do not call the deployment audited or
-production, do not imply the site sends transactions (it is read-only), and do not claim the compression
-is order-of-magnitude — the measured saving is 30.1% over five claims and 22.5% over ten, both published
-in `docs/GAS.md`. Every number in this script is verifiable from `evidence.json`.
+---
+
+## Do not say
+
+- Don't call cxTUSD a stablecoin. It's a faucet token on a testnet.
+- Don't call any of this audited, production-ready, or mainnet.
+- Don't say the batching is an order of magnitude cheaper. The measured saving is 30.1% over five
+  claims and 22.5% over ten, both in `docs/GAS.md`.
+- Don't call the pricing coefficients "AI" anything. They're a published protocol curve.
+- The landing's breach animation is a scroll animation, not live chain data. If you narrate it,
+  don't read its numbers as current state. The console is where live numbers live.
+- Don't mention the grants or the submission itself. Just the protocol.
